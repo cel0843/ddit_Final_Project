@@ -1,0 +1,294 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.mapper.IAnalyticsMapper">
+	 
+
+<select id="selectEmplCnt" parameterType="map" resultType="int">
+<![CDATA[
+	SELECT
+	    count(empl_id)
+	FROM
+	    employee
+	WHERE
+	    jncmp_ymd < #{selectDate}
+	and RSGNTN_YMD is null
+]]>
+</select>
+
+<select id="getServiceYear" resultType="double" parameterType="map">
+	SELECT AVG(tenure_years) AS avg_tenure_years
+	FROM (
+	    SELECT
+	        JNCMP_YMD,
+	        CASE
+	            WHEN RSGNTN_YMD IS NULL THEN SYSDATE
+	            ELSE TO_DATE(RSGNTN_YMD, 'RR/MM/DD')
+	        END AS actual_resign_date,
+	        ROUND((CASE
+	            WHEN RSGNTN_YMD IS NULL THEN SYSDATE
+	            ELSE TO_DATE(RSGNTN_YMD, 'RR/MM/DD')
+	        END - TO_DATE(JNCMP_YMD, 'YYYYMMDD')) / 365, 2) AS tenure_years
+	    FROM employee
+	)
+	
+</select>
+
+<select id="getDeadTaskList" resultType="map">
+<![CDATA[
+SELECT 
+    pt.TASK_NO,
+    pt.PROJ_NO,
+    pt.EMPL_ID,
+    e.EMPL_NM, 
+    pt.TASK_TTL,
+    pt.TASK_BGNG_YMD,
+    pt.TASK_DDLN_YMD,
+    pt.TASK_MDFCN_YMD,
+    pt.TKPR_CODE,
+    pt.TKST_CODE,
+    pt.TASK_PRGS_PER,
+    pt.TASK_REG_YMD
+FROM 
+    (
+        SELECT 
+            pt.*,
+            ROWNUM AS rnum
+        FROM 
+            PROJECT_TASK pt
+        WHERE 
+            pt.TKST_CODE = 'TKST003'
+        and pt.TASK_PRGS_PER = '100'
+        ORDER BY 
+            pt.TASK_DDLN_YMD desc
+    ) pt
+LEFT JOIN 
+    EMPLOYEE e ON pt.EMPL_ID = e.EMPL_ID
+ORDER BY 
+    pt.TASK_DDLN_YMD desc
+]]>
+
+</select>
+
+<select id="getResponCntSurvey" parameterType="int" resultType="map">
+	SELECT
+	    s.SURV_NO,
+	    s.SURV_REG_DT,
+	    s.SURV_END_DT,
+	    q.QSTN_NO,
+	    DBMS_LOB.SUBSTR(q.QSTN_CN, 4000, 1) AS QSTN_CN,
+	    q.QSTN_DISP_ORD,
+	    qi.QITEM_NO,
+	    DBMS_LOB.SUBSTR(qi.QITEM_CN, 4000, 1) AS QITEM_CN,
+	    qi.QITEM_DISP_ORD,
+	    COUNT(r.SURV_ANS_CN_NO) AS RESPONSE_COUNT
+	FROM
+	    SURVEY s
+	JOIN
+	    SURVEY_QSTN q ON s.SURV_NO = q.SURV_NO
+	JOIN
+	    SURVEY_QITEM qi ON q.QSTN_NO = qi.QSTN_NO
+	LEFT JOIN
+	    SURVEY_RSPNS_CN r ON q.QSTN_NO = r.QSTN_NO AND qi.QITEM_NO = r.ANS_NO
+	WHERE
+	    s.SURV_NO = #{survNo}
+	GROUP BY
+	    s.SURV_NO,
+	    s.SURV_REG_DT,
+	    s.SURV_END_DT,
+	    q.QSTN_NO,
+	    DBMS_LOB.SUBSTR(q.QSTN_CN, 4000, 1),
+	    q.QSTN_DISP_ORD,
+	    qi.QITEM_NO,
+	    DBMS_LOB.SUBSTR(qi.QITEM_CN, 4000, 1),
+	    qi.QITEM_DISP_ORD
+	ORDER BY
+	    q.QSTN_DISP_ORD,
+	    qi.QITEM_DISP_ORD
+</select>
+		
+
+
+<select id="getMonthlySurveyData" parameterType="map" resultType="surveyVO" >
+	SELECT
+	    surv_no,
+	    surv_ttl_nm,
+	    surv_cn,
+	    surv_reg_dt,
+	    surv_end_dt,
+	    surv_stts,
+	    surv_del_yn,
+	    surv_patcp_cnt,
+	    surv_cat
+	FROM
+	    survey
+	WHERE
+	    SURV_CAT = '우수사원'
+	    AND SURV_STTS = 'Y'
+	    AND TO_CHAR(surv_reg_dt, 'YYYY-MM') = #{survDate}
+
+</select>
+
+<select id="getAvgAttendanceRate" parameterType="string" resultType="double">
+<![CDATA[
+WITH this_month AS (
+    SELECT 
+        WORK_NO,
+        EMPL_ID,
+        WORK_BGNG_HR,
+        WORK_END_HR,
+        ATT_DT
+    FROM 
+        WORKS
+    WHERE 
+        TO_CHAR(ATT_DT, 'YYYY-MM') = #{yearMonth}
+),
+attendance AS (
+    SELECT 
+        EMPL_ID,
+        COUNT(DISTINCT ATT_DT) AS attended_days
+    FROM 
+        this_month
+    WHERE 
+        (WORK_BGNG_HR IS NOT NULL AND WORK_END_HR IS NOT NULL) 
+        AND (TO_CHAR(WORK_END_HR, 'HH24:MI:SS') <> '00:00:00')
+    GROUP BY 
+        EMPL_ID
+),
+total_days AS (
+    SELECT 
+        COUNT(DISTINCT ATT_DT) AS total_work_days
+    FROM 
+        this_month
+),
+employee_attendance_rate AS (
+    SELECT
+        EMPL_ID,
+        (attended_days / t.total_work_days) * 100 AS attendance_rate
+    FROM
+        attendance a, total_days t
+)
+SELECT 
+    NVL(AVG(attendance_rate), 0) AS avg_attendance_rate
+FROM 
+    employee_attendance_rate
+]]>
+
+</select>
+
+<resultMap id="employeeResultMap" type="java.util.Map">
+    <result property="EMPL_ID" column="EMPL_ID"/>
+    <result property="DEPT_CD" column="DEPT_CD"/>
+    <result property="EMPL_NM" column="EMPL_NM"/>
+    <result property="JNCMP_YMD" column="JNCMP_YMD"/>
+    <result property="EMS_STTS_CD" column="EMS_STTS_CD"/>
+    <result property="POSITION_CD" column="POSITION_CD"/>
+    <result property="PROFL_IMAGE_COURS" column="PROFL_IMAGE_COURS" javaType="java.lang.String" jdbcType="CLOB"/>
+    <result property="DEPT_NM" column="DEPT_NM"/>
+</resultMap>
+
+<select id="getEmplInfo" parameterType="string" resultMap="employeeResultMap">
+    SELECT
+        E.EMPL_ID,
+        E.DEPT_CD,
+        E.EMPL_NM,
+        E.JNCMP_YMD,
+        E.EMS_STTS_CD,
+        E.POSITION_CD,
+        E.PROFL_IMAGE_COURS,
+        D.DEPT_NM
+    FROM
+        employee e
+    JOIN
+        department d ON e.dept_cd = d.dept_cd
+    WHERE
+        e.empl_id = #{emplId}
+</select>
+
+<select id="getEmplOfMonth" parameterType="int" resultType="map" >
+SELECT 
+    s.SURV_NO,
+    s.SURV_REG_DT,
+    s.SURV_END_DT,
+    q.QSTN_NO,
+    DBMS_LOB.SUBSTR(q.QSTN_CN, 4000, 1) AS QSTN_CN,
+    q.QSTN_DISP_ORD,
+    qi.QITEM_NO,
+    DBMS_LOB.SUBSTR(qi.QITEM_CN, 4000, 1) AS QITEM_CN,
+    qi.QITEM_DISP_ORD,
+    COUNT(r.SURV_ANS_CN_NO) AS RESPONSE_COUNT
+FROM 
+    SURVEY s
+JOIN 
+    SURVEY_QSTN q ON s.SURV_NO = q.SURV_NO
+JOIN 
+    SURVEY_QITEM qi ON q.QSTN_NO = qi.QSTN_NO
+LEFT JOIN 
+    SURVEY_RSPNS_CN r ON q.QSTN_NO = r.QSTN_NO AND qi.QITEM_NO = r.ANS_NO
+WHERE 
+    s.SURV_NO = #{survNo}
+GROUP BY 
+    s.SURV_NO,
+    s.SURV_REG_DT,
+    s.SURV_END_DT,
+    q.QSTN_NO,
+    DBMS_LOB.SUBSTR(q.QSTN_CN, 4000, 1),
+    q.QSTN_DISP_ORD,
+    qi.QITEM_NO,
+    DBMS_LOB.SUBSTR(qi.QITEM_CN, 4000, 1),
+    qi.QITEM_DISP_ORD
+HAVING 
+    COUNT(r.SURV_ANS_CN_NO) = (
+        SELECT 
+            MAX(RESPONSE_COUNT)
+        FROM (
+            SELECT 
+                COUNT(r2.SURV_ANS_CN_NO) AS RESPONSE_COUNT
+            FROM 
+                SURVEY s2
+            JOIN 
+                SURVEY_QSTN q2 ON s2.SURV_NO = q2.SURV_NO
+            JOIN 
+                SURVEY_QITEM qi2 ON q2.QSTN_NO = qi2.QSTN_NO
+            LEFT JOIN 
+                SURVEY_RSPNS_CN r2 ON q2.QSTN_NO = r2.QSTN_NO AND qi2.QITEM_NO = r2.ANS_NO
+            WHERE 
+                s2.SURV_NO = #{survNo}
+            GROUP BY 
+                q2.QSTN_NO,
+                qi2.QITEM_NO
+        )
+    ) 
+ORDER BY 
+    q.QSTN_DISP_ORD, 
+    qi.QITEM_DISP_ORD
+
+
+</select>
+
+<select id="getProjectAnalytics" resultType="map">
+	SELECT 
+	    (SELECT COUNT(*) 
+	     FROM PROJECTS 
+	     WHERE PROJ_DEL_YN = 'N') AS TOTAL_PROJECTS,
+	    (SELECT COUNT(*) 
+	     FROM PROJECT_TASK 
+	     WHERE TASK_DEL_YN = 'N') AS TOTAL_TASKS,
+	    (SELECT COUNT(DISTINCT EMPL_ID) 
+	     FROM PROJECT_TASK 
+	     WHERE TASK_DEL_YN = 'N') AS TOTAL_PARTICIPANTS
+	FROM dual
+</select>
+
+<select id="getTaskStatusCounts" resultType="map">
+    SELECT 
+       	TO_NUMBER(COUNT(*)) AS TOTAL_TASKS,
+        TO_NUMBER(COUNT(CASE WHEN tkst_code = 'TKST001' THEN 1 END)) AS COUNT_TKST001,
+        TO_NUMBER(COUNT(CASE WHEN tkst_code = 'TKST002' THEN 1 END)) AS COUNT_TKST002,
+        TO_NUMBER(COUNT(CASE WHEN tkst_code = 'TKST003' THEN 1 END)) AS COUNT_TKST003
+    FROM 
+        project_task
+    WHERE
+        task_del_yn = 'N'
+</select>
+	
+</mapper>

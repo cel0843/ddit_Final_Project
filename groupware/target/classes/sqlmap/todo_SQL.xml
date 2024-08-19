@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.mapper.ITodoMapper">
+	<resultMap id="todoResultMap" type="todoVO">
+        <id property="todoId" column="TODO_ID"/>
+        <result property="emplId" column="EMPL_ID"/>
+        <collection property="contents" ofType="todoContentVO">
+            <id property="cnNo" column="CN_NO"/>
+            <result property="todoId" column="TODO_ID"/>
+            <result property="todoCn" column="TODO_CN"/>
+            <result property="todoYn" column="TODO_YN"/>
+        </collection>
+    </resultMap>
+    <select id="getTodos" resultMap="todoResultMap">
+        SELECT 
+            t.TODO_ID, t.EMPL_ID, 
+            c.CN_NO, c.TODO_CN, c.TODO_YN
+        FROM 
+            TODOLIST t
+        LEFT JOIN 
+            TODOLIST_CONTENT c ON t.TODO_ID = c.TODO_ID
+        WHERE 
+            t.EMPL_ID = #{emplId}
+    </select>
+    <insert id="addTodo">
+        INSERT ALL
+          INTO TODOLIST (TODO_ID, EMPL_ID)
+            VALUES (SEQ_TODO_ID.NEXTVAL, #{emplId})
+          INTO TODOLIST_CONTENT (CN_NO, TODO_ID, TODO_CN, TODO_YN)
+            VALUES (SEQ_CN_NO.NEXTVAL, SEQ_TODO_ID.CURRVAL, #{todoCn}, #{todoYn})
+        SELECT * FROM DUAL
+    </insert>
+    <update id="updateTodo">
+		UPDATE TODOLIST_CONTENT
+        SET TODO_YN = #{todoYn}
+        WHERE CN_NO = #{cnNo}
+	</update>
+	<select id="checkedSelect" resultType="Integer">
+		select todo_id
+		from todolist_content
+		where todo_yn = 'CHECKED'
+	</select>
+	<delete id="deleteTodo">
+		DELETE FROM TODOLIST_CONTENT
+        WHERE TODO_YN = 'CHECKED'
+	</delete>
+	<delete id="deleteTodoList" parameterType="int">
+		DELETE FROM TODOLIST
+		WHERE TODO_ID = #{todoId}
+	</delete>
+</mapper>

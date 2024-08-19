@@ -1,0 +1,294 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.mapper.ISurveyMapper">
+
+
+<select id="selectEmplSurvList" resultType="emplVO">
+SELECT
+    empl_id,
+    empl_nm
+FROM
+    employee
+</select>
+
+<select id="selectSurveyList" parameterType="map" resultType="map">
+    SELECT
+        ROW_NUMBER() OVER (ORDER BY SURV.SURV_NO ASC) AS ROW_NO,
+        SURV.SURV_NO,
+        SURV.SURV_TTL_NM,
+        SURV.SURV_CN,
+        SURV.SURV_REG_DT,
+        SURV.SURV_END_DT,
+        SURV.SURV_STTS,
+        SURV.SURV_DEL_YN,
+        SURV.SURV_CAT,
+        NVL(PTCP.PARTICIPANT_COUNT, 0) AS PRTCP_COUNT,
+        (SELECT COUNT(EMPL_ID) FROM EMPLOYEE) AS TOTAL_EMPL,
+        SURV.SURV_PATCP_CNT,
+        NVL(PTCP.SURV_PARTICIPATION, 0) AS SURV_PARTICIPATION
+    FROM
+        SURVEY SURV
+    LEFT JOIN (
+        SELECT 
+            SURV_NO, 
+            COUNT(*) AS PARTICIPANT_COUNT,
+            COUNT(CASE WHEN EMPL_ID = #{emplId} THEN 1 END) AS SURV_PARTICIPATION
+        FROM 
+            SURVEY_PARTICPANT
+        GROUP BY 
+            SURV_NO
+    ) PTCP ON SURV.SURV_NO = PTCP.SURV_NO
+    WHERE 
+        SURV.SURV_DEL_YN = 'N'
+        <if test="select != 'all'">
+            <if test="select != null and select != '' and searchText != null and searchText != ''">
+                <choose>
+                    <when test="select == 'survTtlNm'">
+                        AND SURV.SURV_TTL_NM like '%' || #{searchText} || '%'
+                    </when>
+                    <when test="select == 'survRegDt'">
+                        AND TO_CHAR(SURV.SURV_REG_DT, 'YYYY-MM-DD') like '%' || #{searchText} || '%'
+                    </when>
+                    <when test="select == 'survEndDt'">
+                        AND TO_CHAR(SURV.SURV_END_DT, 'YYYY-MM-DD') like '%' || #{searchText} || '%'
+                    </when>
+                    <when test="select == 'survStts'">
+                        AND SURV.SURV_STTS like '%' || #{searchText} || '%'
+                    </when>
+                </choose>
+            </if>
+        </if>
+        <if test="survStts != null and survStts != ''">
+            AND SURV.SURV_STTS = 'N'
+        </if>
+        <if test="survPatcpCnt != null and survPatcpCnt != ''">
+            AND NVL(PTCP.SURV_PARTICIPATION, 0) = 0
+       	</if>
+    ORDER BY 
+        SURV.SURV_STTS 
+</select>
+
+
+
+	
+	<select id="selectResponCntSurvey" parameterType="int" resultType="map">
+		SELECT
+		    s.SURV_NO,
+		    s.SURV_REG_DT,
+		    s.SURV_END_DT,
+		    q.QSTN_NO,
+		    DBMS_LOB.SUBSTR(q.QSTN_CN, 4000, 1) AS QSTN_CN,
+		    q.QSTN_DISP_ORD,
+		    qi.QITEM_NO,
+		    DBMS_LOB.SUBSTR(qi.QITEM_CN, 4000, 1) AS QITEM_CN,
+		    qi.QITEM_DISP_ORD,
+		    COUNT(r.SURV_ANS_CN_NO) AS RESPONSE_COUNT
+		FROM
+		    SURVEY s
+		JOIN
+		    SURVEY_QSTN q ON s.SURV_NO = q.SURV_NO
+		JOIN
+		    SURVEY_QITEM qi ON q.QSTN_NO = qi.QSTN_NO
+		LEFT JOIN
+		    SURVEY_RSPNS_CN r ON q.QSTN_NO = r.QSTN_NO AND qi.QITEM_NO = r.ANS_NO
+		WHERE
+		    s.SURV_NO = #{survNo}
+		GROUP BY
+		    s.SURV_NO,
+		    s.SURV_REG_DT,
+		    s.SURV_END_DT,
+		    q.QSTN_NO,
+		    DBMS_LOB.SUBSTR(q.QSTN_CN, 4000, 1),
+		    q.QSTN_DISP_ORD,
+		    qi.QITEM_NO,
+		    DBMS_LOB.SUBSTR(qi.QITEM_CN, 4000, 1),
+		    qi.QITEM_DISP_ORD
+		ORDER BY
+		    q.QSTN_DISP_ORD,
+		    qi.QITEM_DISP_ORD
+	</select>
+		
+		
+	<update id="updateEndSurvey">
+	    <![CDATA[
+	    UPDATE survey
+	    SET surv_stts = 'Y',
+	        SURV_PATCP_CNT = NVL((SELECT COUNT(EMPL_ID) FROM EMPLOYEE), 0)
+	    WHERE surv_end_dt < SYSDATE
+	      AND surv_stts = 'N'
+	    ]]>
+	</update>
+	
+	<update id="closeSurveys">
+		UPDATE survey
+	    SET SURV_END_DT = sysdate,
+	        SURV_STTS = 'Y',
+	        SURV_PATCP_CNT = NVL((SELECT COUNT(EMPL_ID) FROM EMPLOYEE), 0)
+	    WHERE SURV_NO IN
+	    <foreach item="item" index="index" collection="surveyNos" open="(" separator="," close=")">
+	        #{item}
+	    </foreach>
+	</update>
+	
+	
+	<insert id="insertSurvey" parameterType="surveyVO" useGeneratedKeys="true">
+		<selectKey keyProperty="survNo" resultType="int" order="BEFORE">
+            SELECT SEQ_SURV_NO.NEXTVAL FROM DUAL
+        </selectKey>
+		INSERT INTO SURVEY 
+			(SURV_NO, SURV_TTL_NM, SURV_CN, SURV_REG_DT, SURV_END_DT, SURV_STTS, SURV_DEL_YN, SURV_CAT) 
+		VALUES
+			(#{survNo}, #{survTtlNm}, #{survCn}, sysdate, 
+        CASE 
+            WHEN LENGTH(#{survEndDt}) > 10 THEN TO_DATE(#{survEndDt}|| ':59', 'YYYY-MM-DD HH24:MI:SS')
+            ELSE TO_DATE(#{survEndDt} || ' 23:59:59', 'YYYY-MM-DD HH24:MI:SS')
+        END, 
+        'N', 'N', #{survCat}
+        )
+    </insert>
+
+    <insert id="insertQuestion" parameterType="surveyQuestionVO" useGeneratedKeys="true">
+        <selectKey keyProperty="qstnNo" resultType="int" order="BEFORE">
+            SELECT SEQ_QSTN_NO.NEXTVAL FROM DUAL
+        </selectKey>
+        INSERT INTO 
+        SURVEY_QSTN
+        	(QSTN_NO, SURV_NO, QSTN_CN, QSTN_DISP_ORD)
+        VALUES 
+        	(#{qstnNo}, #{survNo}, #{qstnCn}, #{qstnDispOrd})
+    </insert>
+
+    <insert id="insertQItem" parameterType="surveyQItemVO" useGeneratedKeys="true">
+       <selectKey keyProperty="qitemNo" resultType="int" order="BEFORE">
+            SELECT SEQ_QITEM_NO.NEXTVAL FROM DUAL
+        </selectKey>
+        INSERT INTO 
+        SURVEY_QITEM
+        	(QITEM_NO, QSTN_NO, QITEM_CN, QITEM_DISP_ORD)
+        VALUES 
+        	(#{qitemNo}, #{qstnNo}, #{qitemCn}, #{qitemDispOrd})
+    </insert>
+    
+    
+	<select id="selectSurvey" parameterType="int" resultType="SurveyVO">
+	    SELECT
+	        SURV_NO,
+	        SURV_TTL_NM,
+	        SURV_CN,
+	        SURV_REG_DT,
+	        SURV_END_DT,
+	        SURV_STTS,
+	        SURV_CAT
+	    FROM
+	        SURVEY
+	    WHERE
+	        SURV_NO = #{survNo}
+	</select>
+	
+	<select id="countTotalEmpl" resultType="int">
+		SELECT
+		    count(empl_id)
+		FROM
+		    employee
+		where RSGNTN_YMD is null
+	</select>
+	
+	<select id="selectQuestions" parameterType="int" resultType="SurveyQuestionVO">
+	    SELECT
+	        QSTN_NO,
+	        SURV_NO,
+	        QSTN_CN,
+	        QSTN_DISP_ORD
+	    FROM
+	        SURVEY_QSTN
+	    WHERE
+	        SURV_NO = #{survNo}
+	    ORDER BY
+	        QSTN_DISP_ORD
+	</select>
+	
+	<select id="selectQItems" parameterType="int" resultType="SurveyQItemVO">
+	    SELECT
+	        QITEM_NO,
+	        QSTN_NO,
+	        QITEM_CN,
+	        QITEM_DISP_ORD
+	    FROM
+	        SURVEY_QITEM
+	    WHERE
+	        QSTN_NO = #{qstnNo}
+	    ORDER BY
+	        QITEM_DISP_ORD
+	</select>
+	
+	<select id="selectPrtcp" parameterType="int" resultType="SurveyParticpantVO">
+		SELECT 
+			SURV_PATCPNT_NO
+			, SURV_NO
+			, EMPL_ID
+			, PATCP_YMD
+		FROM 
+			SURVEY_PARTICPANT
+		WHERE 
+			SURV_NO = #{survNo}
+	</select>
+	
+	<select id="isSurveyParticipated" parameterType="String" resultType="int">
+		SELECT 
+			COUNT(SURV_PATCPNT_NO) as cnt
+		FROM 
+			SURVEY_PARTICPANT
+		WHERE 
+			EMPL_ID = #{emplId}
+	</select>
+	
+	
+	<insert id="surveyParticipated" parameterType="surveyParticpantVO" useGeneratedKeys="true" keyProperty="survPatcpntNo">
+	    <selectKey keyProperty="survPatcpntNo" resultType="int" order="BEFORE">
+	        SELECT SEQ_SRVY_PATPNT_NO.NEXTVAL FROM DUAL
+	    </selectKey>
+	    INSERT INTO SURVEY_PARTICPANT
+	        (SURV_PATCPNT_NO, SURV_NO, EMPL_ID, PATCP_YMD)
+	    VALUES
+	        (#{survPatcpntNo}, #{survNo}, #{emplId}, #{patcpYmd})
+	</insert>
+	
+	<insert id="submitSurvey" parameterType="surveyRspnsCnVO" useGeneratedKeys="true">
+		<selectKey keyProperty="survAnsCnNo" resultType="int" order="BEFORE" >
+			select SEQ_SURV_ANS_CN_NO.NEXTVAL FROM DUAL 
+		</selectKey>
+		INSERT INTO 
+        SURVEY_RSPNS_CN
+        	(SURV_ANS_CN_NO, SURV_PATPNT_NO, QSTN_NO, ANS_NO)
+        VALUES 
+        	(#{survAnsCnNo}, #{survPatpntNo}, #{qstnNo}, #{ansNo})
+	
+	
+	</insert>
+	
+	<select id="selectSurveyCatList" resultType="surveyVO">
+		SELECT 
+		    DISTINCT SURV_CAT 
+		FROM 
+		    SURVEY
+		WHERE 
+		    SURV_CAT IS NOT NULL
+		ORDER BY 
+		    CASE 
+		        WHEN SURV_CAT = '우수사원' THEN 0
+		        ELSE 1
+		    END,
+	    	SURV_CAT
+	</select>
+	
+	<select id="checkSurvey" resultType="int">
+		SELECT 
+    		count(SURV_NO)
+		FROM 
+    		survey
+		WHERE 
+		    SURV_CAT = '우수사원'
+		    AND TO_CHAR(surv_reg_dt, 'YYYY-MM') = TO_CHAR(SYSDATE, 'YYYY-MM') 
+	</select>
+
+</mapper>

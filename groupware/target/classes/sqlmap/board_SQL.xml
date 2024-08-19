@@ -1,0 +1,291 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.mapper.IBoardMapper">
+
+	<resultMap type="customBoardVO" id="boardMap">
+		<id property="bbsNo" column="bbs_no" />
+		<result property="bbsNo" column="bbs_no"/>
+		<result property="emplId" column="empl_id"/>
+		<result property="emplNm" column="empl_nm"/>
+		<result property="bbsTtl" column="bbs_ttl"/>
+		<result property="bbsCn" column="bbs_cn"/>
+		<result property="bbsHit" column="bbs_hit"/>
+		<result property="bbsCtrDt" column="bbs_ctr_dt"/>
+		<result property="bbsMdfcnDt" column="bbs_mdfcn_dt"/>
+		<result property="bbsTyCd" column="bbs_ty_cd"/>
+		<result property="fileGroupNo" column="file_group_no"/>
+		<collection property="boardFileList" resultMap="fileMap"/>
+	</resultMap>
+	
+	<resultMap type="AttachFileVO" id="fileMap">
+		<result property="fileGroupNo" column="file_group_no"/>
+		<result property="fileNo" column="file_no"/>
+		<result property="filePath" column="file_path"/>
+		<result property="fileStrgNm" column="file_strg_nm"/>
+		<result property="fileOrgnlNm" column="file_orgnl_nm"/>
+		<result property="fileSz" column="file_sz"/>
+		<result property="fileFancysize" column="file_fancysize"/>
+		<result property="fileCtrDt" column="file_ctr_dt"/>
+		<result property="fileType" column="file_type"/>
+		<result property="fileDelYn" column="file_del_yn"/>
+	</resultMap>
+	
+	<!-- 검색 기능 -->
+	<sql id="boardSearch">
+		<if test="searchType != null and searchType == 'title'">
+			and (bbs_ttl like '%'||#{searchWord}||'%')
+		</if>
+		<if test="searchType != null and searchType == 'writer'">
+			and (empl_nm like '%'||#{searchWord}||'%')
+		</if>
+	</sql>
+	
+	<!-- 개시글 총 갯수  조회-->
+	<select id="selectBoardCount" parameterType="boardPagingVO" resultType="int">
+		select count(bo.bbs_no) 
+		from board bo INNER JOIN employee e ON bo.empl_id = e.empl_id 
+		where 1=1 
+			and bbs_ty_cd = #{bbsTyCd} 
+			<include refid="boardSearch"/>
+	</select>
+	
+	<!-- 게시글 리스트 조회 -->
+	<select id="selectBoardList" parameterType="boardPagingVO" resultType="customBoardVO">
+		select 
+		    b.*
+		from (
+		    select
+		        a.*, row_number() over(order by a.bbs_no desc) r_num
+		    from (
+		        SELECT
+		            bo.bbs_no,
+		            bo.empl_id,
+		            e.empl_nm,
+		            bo.bbs_ttl,
+		            bo.bbs_hit,
+		            bo.bbs_ctr_dt,
+		            bo.bbs_mdfcn_dt,
+		            bo.bbs_ty_cd,
+		            bo.file_group_no
+		        FROM
+		            board bo INNER JOIN employee e ON bo.empl_id = e.empl_id
+		        WHERE 1 = 1 
+		            and bbs_ty_cd = #{bbsTyCd}
+		        	<include refid="boardSearch"/>
+		        order by bo.bbs_no desc
+		    ) a
+		) b
+		<![CDATA[
+		    where b.r_num >= #{startRow} and b.r_num <= #{endRow}
+		]]>
+	
+	</select>
+	
+	<!-- 파일그룹번호 조회 -->
+	<select id="getFileGroupNo" resultType="int">
+		select seq_file_group_no.NEXTVAL from dual
+	</select>
+	
+	<!-- 게시글 파일정보 insert -->
+	<insert id="insertFileInfo" parameterType="AttachFileVO">
+		INSERT INTO atch_file (
+		    file_group_no,
+		    file_no,
+		    file_path,
+		    file_strg_nm,
+		    file_orgnl_nm,
+		    file_sz,
+		    file_fancysize,
+		    file_ctr_dt,
+		    file_type,
+		    file_del_yn
+		) VALUES (
+			#{fileGroupNo},
+			( SELECT nvl(max(file_no), 0) + 1 FROM atch_file WHERE file_group_no = #{fileGroupNo} ),
+			#{filePath},
+			#{fileStrgNm},
+			#{fileOrgnlNm},
+			#{fileSz},
+			#{fileFancysize},
+			sysdate,
+			#{fileType},
+			'N'
+		)
+	</insert>
+	
+	<!-- 파일정보 삭제 -->
+	<delete id="delBoardFile" parameterType="map">
+		DELETE FROM atch_file
+		WHERE
+		    file_group_no = #{fileGroupNo} AND file_no = #{fileNo}
+	</delete>
+	
+	<!-- 게시글 정보 insert -->
+	<insert id="registerBoard" parameterType="customBoardVO" useGeneratedKeys="true">
+		<selectKey keyProperty="bbsNo" resultType="int" order="BEFORE">
+			select seq_bbs_no.NEXTVAL from dual
+		</selectKey>
+		INSERT INTO board (
+		    bbs_no
+		    ,empl_id
+		    ,bbs_ttl
+		    ,bbs_cn
+		    ,bbs_hit
+		    ,bbs_ctr_dt
+		    ,bbs_ty_cd
+		    <if test="fileGroupNo != null and fileGroupNo != 0">
+			    , file_group_no
+		    </if>
+		) VALUES (
+			#{bbsNo}
+			, #{emplId}
+			, #{bbsTtl}
+			, #{bbsCn}
+			, 0
+			, sysdate
+			, #{bbsTyCd}
+			<if test="fileGroupNo != null and fileGroupNo != 0">
+				, #{fileGroupNo}
+			</if>
+		)
+	</insert>
+	
+	<!-- 게시글 정보 update -->
+	<update id="updateBoard" parameterType="customBoardVO">
+		update board
+		set 
+		    bbs_ttl = #{bbsTtl}
+		    , bbs_cn = #{bbsCn}
+		    , bbs_mdfcn_dt = sysdate
+		    <if test="fileGroupNo != null and fileGroupNo != 0">
+			    , file_group_no = #{fileGroupNo}
+		    </if>
+		where bbs_no = #{bbsNo}
+	</update>	
+	
+	<!-- 게시글 상세조회 -->
+	<select id="selectBoard" parameterType="int" resultMap="boardMap">
+        SELECT
+		    bo.bbs_no
+		    , bo.empl_id
+		    , (select empl_nm from employee where empl_id = bo.empl_id) empl_nm
+		    , bo.bbs_ttl
+		    , bo.bbs_cn
+		    , bo.bbs_hit
+		    , bo.bbs_ctr_dt
+		    , bo.bbs_mdfcn_dt
+		    , bo.bbs_ty_cd
+		    , bo.file_group_no
+		    , af.file_no
+		    , af.file_path
+		    , af.file_strg_nm
+		    , af.file_orgnl_nm
+		    , af.file_sz
+		    , af.file_fancysize
+		    , af.file_ctr_dt
+		    , af.file_type
+		    , af.file_del_yn
+		FROM
+		    board bo LEFT JOIN ATCH_FILE af ON bo.file_group_no = af.file_group_no
+        WHERE bo.bbs_no = #{bbsNo} 
+	</select>
+	
+	<update id="incrementHit" parameterType="int">
+		 UPDATE board
+		    SET bbs_hit = bbs_hit + 1
+		WHERE bbs_no = #{bbsNo}
+	</update>
+	
+	<delete id="deleteBoard" parameterType="int">
+		DELETE FROM board
+		WHERE bbs_no = #{bbsNo}
+	</delete>
+	
+	<!-- 댓글 리스트 조회 -->
+	<select id="selectCommentList" parameterType="int" resultType="commentVO">
+		SELECT
+		    cmnt_no
+		    , co.empl_id
+		    , (select empl_nm from employee where empl_id = co.empl_id) empl_nm
+		    , co.bbs_no
+		    , co.cmnt_wrt_dt
+		    , co.cmnt_mdfcn_dt
+		    , co.cmnt_cn
+		FROM
+		    comments co
+		WHERE
+			bbs_no = #{bbsNo}
+		ORDER BY cmnt_wrt_dt desc
+	</select>
+	
+	<!-- 댓글 조회 -->
+	<select id="selectComment" parameterType="int" resultType="commentVO">
+		SELECT
+		    cmnt_no
+		    , co.empl_id
+		    , (select empl_nm from employee where empl_id = co.empl_id) empl_nm
+		    , co.bbs_no
+		    , co.cmnt_wrt_dt
+		    , co.cmnt_mdfcn_dt
+		    , co.cmnt_cn
+		FROM
+		    comments co
+		WHERE
+			cmnt_no = #{cmntNo}
+	</select>
+	
+	<!-- 댓글 등록 -->
+	<insert id="insertComment" parameterType="commentVO" useGeneratedKeys="true">
+		<selectKey keyProperty="cmntNo" resultType="int" order="BEFORE">
+			select SEQ_CMNT_NO.NEXTVAL from dual
+		</selectKey>
+		INSERT INTO comments (
+		    cmnt_no,
+		    empl_id,
+		    bbs_no,
+		    cmnt_wrt_dt,
+		    cmnt_cn
+		) VALUES (
+		    #{cmntNo}
+		    , #{emplId}
+		    , #{bbsNo}
+		    , sysdate
+		    , #{cmntCn}
+		)
+	</insert>
+	
+	<!-- 댓글 수정 -->
+	<update id="updateComment" parameterType="commentVO">
+		UPDATE comments
+		SET
+		    cmnt_cn = #{cmntCn}
+		WHERE
+		    cmnt_no = #{cmntNo}
+	</update>
+	
+	<!-- 게시글 댓글 전체 삭제 -->
+	<delete id="deleteBoardComment" parameterType="int">
+		DELETE FROM comments
+		WHERE bbs_no = #{bbsNo}   
+	</delete>
+	
+	<!-- 댓글 삭제 -->
+	<delete id="deleteComment" parameterType="int">
+		DELETE FROM comments
+		WHERE cmnt_no = #{cmntNo}   
+	</delete>
+	
+	<select id="mainSummaryBoardSelect" resultType="customBoardVO">
+	select BBS_TTL
+	from (
+	    select BBS_TTL
+	    from board
+	    where bbs_ty_cd = 'M010101'
+	    order by BBS_CTR_DT desc
+	)
+	<![CDATA[
+	where rownum <= 5
+	]]>
+	</select>
+
+</mapper>

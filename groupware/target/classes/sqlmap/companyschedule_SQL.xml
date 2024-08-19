@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.mapper.ICompanyScheduleMapper">
+
+    <select id="selectCSList" resultType="kr.or.ddit.vo.CompanyScheduleVO">
+        SELECT 
+            SCHDL_NO AS schdlNo,
+            SCHDL_NM AS schdlNm,
+            SCHDL_DT AS schdlDt,
+            SCHDL_CNT AS schdlCnt,
+            SCHDL_BGNG_DT AS schdlBgngDt,
+            SCHDL_END_DT AS schdlEndDt,
+            SCHDL_PSTN AS schdlPstn,
+            SCHDL_REG_SN AS schdlRegSn,
+            SCHDL_EMPL_ID AS schdlEmplId,
+            SCHDL_VL AS schdlVl,
+            SCHDL_COLOR AS schdlColor
+        FROM COMPANY_SCHEDULE
+    </select>
+
+	<select id="summaryInfo" parameterType="String" resultType="csVO">
+		SELECT
+		    SCHDL_NM AS schdlNm,
+		    TO_CHAR(SCHDL_BGNG_DT, 'YYYY-MM-DD HH24:MI:SS') AS schdlBgngDt,
+		    TO_CHAR(SCHDL_END_DT, 'YYYY-MM-DD HH24:MI:SS') AS schdlEndDt
+		FROM 
+		    COMPANY_SCHEDULE
+		WHERE
+		    TO_CHAR(SCHDL_BGNG_DT, 'YYYY-MM') = '2024-'||#{month}
+	</select>
+
+    <insert id="insertSchedul">
+    INSERT INTO COMPANY_SCHEDULE (
+        SCHDL_NO,
+        SCHDL_NM,
+        SCHDL_CNT,
+        SCHDL_COLOR,
+        SCHDL_BGNG_DT,
+        SCHDL_END_DT
+    ) VALUES (
+        SEQ_SCHDL_NO.NEXTVAL,
+        #{schdlNm},
+        #{schdlCnt},
+        #{schdlColor},
+        TO_DATE(#{schdlBgngDt}, 'YYYY-MM-DD HH24:MI:SS'),
+        TO_DATE(#{schdlEndDt}, 'YYYY-MM-DD HH24:MI:SS')
+    )
+    </insert>
+
+    <update id="updateSchedul">
+        UPDATE COMPANY_SCHEDULE
+        SET
+            SCHDL_NM = #{schdlNm},
+            SCHDL_CNT = #{schdlCnt},
+            SCHDL_COLOR = #{schdlColor},
+            SCHDL_BGNG_DT = TO_DATE(#{schdlBgngDt}, 'YYYY-MM-DD HH24:MI:SS'),
+            SCHDL_END_DT = TO_DATE(#{schdlEndDt}, 'YYYY-MM-DD HH24:MI:SS')
+        WHERE SCHDL_NO = #{schdlNo}
+    </update>
+
+    <update id="updateDateSchedul">
+        UPDATE COMPANY_SCHEDULE
+        SET
+            SCHDL_BGNG_DT = TO_DATE(#{schdlBgngDt}, 'YYYY-MM-DD HH24:MI:SS'),
+            SCHDL_END_DT = TO_DATE(#{schdlEndDt}, 'YYYY-MM-DD HH24:MI:SS')
+        WHERE SCHDL_NO = #{schdlNo}
+    </update>
+
+    <delete id="deleteSchedul">
+        DELETE FROM COMPANY_SCHEDULE
+        WHERE SCHDL_NO = #{schdlNo}
+    </delete>
+</mapper>

@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.mapper.ILogInfoMapper">
+	
+	<resultMap type="customEmplVO" id="cEmplMap">
+		<id property="emplId" column="empl_id"/>
+		<result property="emplId" column="empl_id"/>
+		<result property="deptCd" column="dept_cd"/>
+		<result property="deptNm" column="dept_Nm"/>
+		<result property="emplNm" column="empl_nm"/>
+		<result property="emplPswd" column="empl_pswd"/>
+		<result property="rrno" column="rrno"/>
+		<result property="email" column="email"/>
+		<result property="telno" column="telno"/>
+		<result property="zip" column="zip"/>
+		<result property="bscAddr" column="bsc_addr"/>
+		<result property="dtlAddr" column="dtl_addr"/>
+		<result property="jncmpYmd" column="jncmp_ymd"/>
+		<result property="rsgntnYmd" column="rsgntn_ymd"/>
+		<result property="emsSttsCd" column="ems_stts_cd"/>
+		<result property="positionCd" column="position_cd"/>
+		<result property="positionNm" column="position_nm"/>
+		<result property="esgn" column="esgn" javaType="java.lang.String" jdbcType="CLOB"/>
+		<result property="jbttlNm" column="jbttl_nm"/>
+		<result property="proflImageCours" column="profl_image_cours" javaType="java.lang.String" jdbcType="CLOB"/>
+		<collection property="authList" resultMap="authMap"/>
+	</resultMap>
+	
+	<resultMap type="emplAuthVO" id="authMap">
+		<result property="emplId" column="empl_id"/>
+		<result property="auth" column="auth"/>
+	</resultMap>
+	
+	<select id="readByEmplInfo" parameterType="string" resultMap="cEmplMap">
+		select 
+		    e.EMPL_ID
+		    , e.DEPT_CD
+		    , d.DEPT_NM
+		    , e.EMPL_NM
+		    , e.EMPL_PSWD
+		    , e.RRNO
+		    , e.EMAIL
+		    , e.TELNO
+		    , e.ZIP
+		    , e.BSC_ADDR
+		    , e.DTL_ADDR
+		    , e.JNCMP_YMD
+		    , e.RSGNTN_YMD
+		    , e.EMS_STTS_CD
+		    , e.POSITION_CD
+		    , (select cm_cd_nm 
+     			from common_code 
+     			where cm_cd = e.POSITION_CD) as POSITION_NM
+		    , e.JBTTL_NM
+		    , e.PROFL_IMAGE_COURS
+		    , e.ESGN
+		    , ea.AUTH
+		from department d right outer join employee e on(d.DEPT_CD = e.DEPT_CD) 
+							left outer join emp_auth ea on(e.empl_id = ea.empl_id)
+		where e.empl_id = #{userId}
+	</select>
+	
+	
+	<select id="employeeList" resultMap="cEmplMap">
+		select 
+		    e.EMPL_ID
+		    , e.EMPL_NM
+            , d.DEPT_NM
+            , (select cm_cd_nm 
+     			from common_code 
+     			where cm_cd = e.POSITION_CD) as POSITION_NM
+            , e.TELNO
+            , ea.AUTH                    
+            , e.RSGNTN_YMD
+		from department d right outer join employee e on(d.DEPT_CD = e.DEPT_CD) 
+							left outer join emp_auth ea on(e.empl_id = ea.empl_id)
+	</select>
+	
+<select id="employeeSearchList" resultMap="cEmplMap" parameterType="map">
+    select 
+        e.EMPL_ID,
+        e.EMPL_NM,
+        d.DEPT_NM,
+        (select cm_cd_nm 
+         from common_code 
+         where cm_cd = e.POSITION_CD) as POSITION_NM,
+        e.TELNO,
+        ea.AUTH,
+        e.RSGNTN_YMD
+    from department d 
+    right outer join employee e on(d.DEPT_CD = e.DEPT_CD) 
+    left outer join emp_auth ea on(e.empl_id = ea.empl_id)
+    <where>
+        <choose>
+            <when test="select == 'emplId'">
+                e.EMPL_ID like '%' || UPPER(#{searchText}) || '%'
+            </when>
+            <when test="select == 'emplNm'">
+                e.EMPL_NM like '%' || UPPER(#{searchText}) || '%'
+            </when>
+            <when test="select == 'deptNm'">
+                d.DEPT_NM like '%'|| UPPER(#{searchText}) ||'%'
+            </when>
+            <when test="select == 'positionNm'">
+                (select cm_cd_nm 
+                 from common_code 
+                 where cm_cd = e.POSITION_CD) like '%' || UPPER(#{searchText}) || '%'
+            </when>
+            <when test="select == 'telno'">
+                e.TELNO like '%' || UPPER(#{searchText}) || '%'
+            </when>
+        </choose>
+    </where>
+</select>
+	
+	<insert id="insertEmployee">
+		insert into employee(
+		    EMPL_ID
+		    ,DEPT_CD
+		    ,EMPL_NM
+		    ,EMPL_PSWD
+		    ,RRNO
+		    ,EMAIL
+		    ,TELNO
+		    ,ZIP
+		    ,BSC_ADDR
+		    ,DTL_ADDR
+		    ,JNCMP_YMD
+		    ,RSGNTN_YMD
+		    ,EMS_STTS_CD
+		    ,POSITION_CD
+		    ,JBTTL_NM
+		    ,ESGN
+		    ,ENABLED
+		    ,PROFL_IMAGE_COURS
+		)
+		values(
+		    #{emplId}, #{deptCd},#{emplNm},#{emplPswd},
+		    #{rrno},#{email},#{telno},#{zip},#{bscAddr},#{dtlAddr},#{jncmpYmd},
+		    null,'EMS001',#{positionCd},null,#{esgn},1,#{proflImageCours}
+		)
+	</insert>
+	
+    <insert id="insertEmployeeAuth">
+        <foreach collection="authList" item="auth" separator=";">
+            insert into emp_auth (EMPL_ID, AUTH)
+            values (#{auth.emplId}, #{auth.auth})
+        </foreach>
+    </insert>
+	
+<update id="updateEmployee">
+    update employee
+    set
+        DEPT_CD = #{deptCd},
+        EMPL_NM = #{emplNm},
+        EMPL_PSWD = #{emplPswd},
+        RRNO = #{rrno},
+        EMAIL = #{email},
+        TELNO = #{telno},
+        ZIP = #{zip},
+        BSC_ADDR = #{bscAddr},
+        DTL_ADDR = #{dtlAddr},
+        POSITION_CD = #{positionCd}
+        <if test="jncmpYmd != null and jncmpYmd != ''">
+        , JNCMP_YMD = #{jncmpYmd}
+        </if>
+        <if test="rsgntnYmd != null and rsgntnYmd != ''">
+        , RSGNTN_YMD = sysdate
+        </if>
+        <if test="rsgntnYmd == null">
+        , RSGNTN_YMD = null
+        </if>
+        <if test="esgn != null and esgn != ''">
+            , ESGN = #{esgn}
+        </if>
+        <if test="proflImageCours != null and proflImageCours != ''">
+            , PROFL_IMAGE_COURS = #{proflImageCours}
+        </if>
+    where EMPL_ID = #{emplId}
+</update>
+	
+<update id="updateEmployeeAuth">
+   <foreach collection="authList" item="auth" separator=";">
+       update emp_auth
+       set AUTH = #{auth.auth}
+       where EMPL_ID = #{auth.emplId}
+   </foreach>
+</update>
+<!-- 	위에코드와  같은 코드임 -->
+<!-- update emp_auth set AUTH = 'authValue1' where EMPL_ID = 'emplId1'; -->
+<!-- update emp_auth set AUTH = 'authValue2' where EMPL_ID = 'emplId2'; -->
+<!-- update emp_auth set AUTH = 'authValue3' where EMPL_ID = 'emplId3';	 -->
+	
+	
+</mapper>
+
+
+<!-- 
+emplId, deptCd, emplNm, emplPswd, rrno, email, telno, zip, bscAddr, dtlAddr, jncmpYmd, rsgntnYmd, emsSttsCd
+, positionCd, jbttlNm, proflImageCours
+ -->

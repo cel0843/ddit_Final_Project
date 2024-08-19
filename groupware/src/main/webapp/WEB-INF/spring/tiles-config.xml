@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE tiles-definitions PUBLIC 
+"-//Apache Software Foundation//DTD Tiles Configuration 3.0//EN" 
+"http://tiles.apache.org/dtds/tiles-config_3_0.dtd">
+<!-- tiles 설정 -->
+<tiles-definitions>
+
+	<!-- admin layout -->
+	<definition name="tiles-layout" template="/WEB-INF/views/tiles/index.jsp">
+		<put-attribute name="header" value="/WEB-INF/views/tiles/header.jsp" />
+		<put-attribute name="aside" value="/WEB-INF/views/tiles/aside.jsp" />
+		<put-attribute name="body" value="" />
+		<put-attribute name="footer" value="/WEB-INF/views/tiles/footer.jsp" />
+	</definition>
+	
+	<definition name="admin/*/*/*" extends="tiles-layout">
+		<put-attribute name="body" value="/WEB-INF/views/egg/{1}/{2}/{3}.jsp" />
+	</definition>
+	
+	<definition name="admin/*/*" extends="tiles-layout">
+		<put-attribute name="body" value="/WEB-INF/views/egg/{1}/{2}.jsp" />
+	</definition>
+	
+	<definition name="admin/*" extends="tiles-layout">
+		<put-attribute name="body" value="/WEB-INF/views/egg/{1}.jsp" />
+	</definition>
+	
+	
+	<!-- user layout -->
+	<definition name="user-tiles-layout" template="/WEB-INF/views/tiles/user_tiles/index.jsp">
+		<put-attribute name="header" value="/WEB-INF/views/tiles/user_tiles/header.jsp" />
+		<put-attribute name="aside" value="/WEB-INF/views/tiles/user_tiles/aside.jsp" />
+		<put-attribute name="user_body" value="" />
+		<put-attribute name="footer" value="/WEB-INF/views/tiles/user_tiles/footer.jsp" />
+	</definition>
+	
+	<definition name="egg/*/*/*" extends="user-tiles-layout">
+		<put-attribute name="user_body" value="/WEB-INF/views/egg{1}/{2}/{3}.jsp" />
+	</definition>
+	
+	<definition name="egg/*/*" extends="user-tiles-layout">
+		<put-attribute name="user_body" value="/WEB-INF/views/egg/{1}/{2}.jsp" />
+	</definition>
+	
+	<definition name="egg/*" extends="user-tiles-layout">
+		<put-attribute name="user_body" value="/WEB-INF/views/egg/{1}.jsp" />
+	</definition>
+	
+	
+	
+	<!-- empty layout -->
+	<definition name="empty" template ="/WEB-INF/views/tiles/empty.jsp">
+		<put-attribute name="content" value =""/>
+	</definition>
+	
+	<definition name="egg/loginForm" extends ="empty">
+		<put-attribute name="login-content" value ="/WEB-INF/views/egg/common/pages-login.jsp"/>
+	</definition>
+	
+</tiles-definitions>
+

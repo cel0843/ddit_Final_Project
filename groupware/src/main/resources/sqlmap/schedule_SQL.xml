@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.mapper.IScheduleMapper">
+	
+	<select id="scheduleList" parameterType="int" resultType="projectScheduleVO">
+		SELECT PROJ_SCHDL_NO, 
+		       PROJ_NO, 
+		       PROJ_SCHDL_NM, 
+		       PROJ_SCHDL_CN, 
+		       PROJ_SCHDL_COLOR, 
+		       TO_TIMESTAMP(PROJ_SCHDL_BGNG_DT, 'YYYY-MM-DD"T"HH24:MI:SS') AS PROJ_SCHDL_BGNG_DT, 
+		       TO_TIMESTAMP(PROJ_SCHDL_END_DT, 'YYYY-MM-DD"T"HH24:MI:SS') AS PROJ_SCHDL_END_DT
+		FROM PROJECT_SCHEDULE
+		WHERE PROJ_NO = #{projNo}
+		  AND PROJ_SCHDL_END_DT >= SYSDATE
+		ORDER BY PROJ_SCHDL_END_DT
+	</select>
+	
+	<insert id="insertSchedul" parameterType="projectScheduleVO">
+		INSERT INTO PROJECT_SCHEDULE (
+	        PROJ_SCHDL_NO,
+	        PROJ_NO,
+	        PROJ_SCHDL_NM,
+	        PROJ_SCHDL_CN,
+	        PROJ_SCHDL_COLOR,
+	        PROJ_SCHDL_BGNG_DT,
+	        PROJ_SCHDL_END_DT
+	    ) VALUES (
+	        SEQ_PROJ_SCHDL_NO.NEXTVAL,
+	        #{projNo},
+	        #{projSchdlNm},
+	        #{projSchdlCn},
+	        #{projSchdlColor},
+	        #{projSchdlBgngDt},
+	        #{projSchdlEndDt}
+	    )
+	
+	</insert>
+	
+	
+	<update id="updateSchedul" parameterType="projectScheduleVO">
+	    UPDATE PROJECT_SCHEDULE
+	    SET
+	        PROJ_SCHDL_NM = #{projSchdlNm},
+	        PROJ_SCHDL_CN = #{projSchdlCn},
+	        PROJ_SCHDL_COLOR = #{projSchdlColor}
+	    WHERE
+	        PROJ_SCHDL_NO = #{projSchdlNo}
+	</update>
+	
+	<update id="updateDateSchedul" parameterType="projectScheduleVO">
+	    UPDATE PROJECT_SCHEDULE
+	    SET
+	        PROJ_SCHDL_BGNG_DT = #{projSchdlBgngDt , jdbcType=TIMESTAMP},
+	        PROJ_SCHDL_END_DT = #{projSchdlEndDt , jdbcType=TIMESTAMP}
+	    WHERE
+	        PROJ_SCHDL_NO = #{projSchdlNo}
+	</update>
+	
+	
+	<delete id="deleteSchedul" parameterType="int">
+	    DELETE 
+	    	FROM PROJECT_SCHEDULE 
+	    WHERE 
+	    	PROJ_SCHDL_NO = #{projSchdlNo}
+	</delete>
+</mapper>

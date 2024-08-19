@@ -1,0 +1,354 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.mapper.IDataMapper">
+
+	<resultMap type="dataVO" id="directoryMap">
+		<result property="fldNo" column="FLD_NO"/>
+		<result property="upFldNo" column="UP_FLD_NO"/>
+		<result property="emplId" column="EMPL_ID"/>
+		<result property="fldCrtDt" column="FLD_CRT_DT"/>
+		<result property="lastMdfcnDt" column="LAST_MDFCN_DT"/>
+		<result property="fldDelYn" column="FLD_DEL_YN"/>
+		<result property="fileGroupNo" column="FILE_GROUP_NO"/>
+		<result property="fldTyCd" column="FLD_TY_CD"/>
+		<result property="fldNm" column="FLD_NM"/>
+		<result property="upFldNm" column="UP_FLD_NM"/>
+		<collection property="attachFileList" resultMap="fileMap"></collection>
+	</resultMap>
+
+	<resultMap type="AttachFileVO" id="fileMap">
+		<result property="fileGroupNo" column="FILE_GROUP_NO"/>
+		<result property="fileNo" column="FILE_NO"/>
+		<result property="filePath" column="FILE_PATH"/>
+		<result property="fileStrgNm" column="FILE_STRG_NM"/>
+		<result property="fileOrgnlNm" column="FILE_ORGNL_NM"/>
+		<result property="fileSz" column="FILE_SZ"/>
+		<result property="fileFancysize" column="FILE_FANCYSIZE"/>
+		<result property="fileCtrDt" column="FILE_CTR_DT"/>
+		<result property="fileType" column="FILE_TYPE"/>
+		<result property="fileDelYn" column="FILE_DEL_YN"/>
+	</resultMap>
+
+	<select id="selectAllfileList" parameterType="String" resultMap="directoryMap">
+		SELECT  D.FLD_NO, D.UP_FLD_NO, D.EMPL_ID, D.FLD_CRT_DT, D.LAST_MDFCN_DT
+		      , D.FLD_DEL_YN, D.FILE_GROUP_NO, D.FLD_TY_CD, D.FLD_NM, D.UP_FLD_NM
+		      , A.FILE_NO, A.FILE_PATH, A.FILE_STRG_NM, A.FILE_ORGNL_NM
+		      , A.FILE_SZ, A.FILE_FANCYSIZE, A.FILE_CTR_DT, A.FILE_TYPE, A.FILE_DEL_YN
+		 FROM  DATA_DIRECTORY D
+		     , ATCH_FILE A
+		 WHERE D.EMPL_ID = #{emplId}
+		  AND  D.FILE_GROUP_NO = A.FILE_GROUP_NO(+)
+		  AND  D.FLD_TY_CD = 'P'
+		  AND   A. FILE_DEL_YN != 'Y'
+		  AND   D. FLD_DEL_YN = 'N'
+	</select>
+	
+	
+<!-- 	<select id="selectAllfileList" parameterType="String" resultMap="directoryMap"> -->
+       
+<!-- 		SELECT * -->
+<!-- 			FROM ( -->
+<!-- 			    SELECT -->
+<!-- 			       D.FLD_NO,  -->
+<!-- 			       D.UP_FLD_NO,  -->
+<!-- 			       D.EMPL_ID,  -->
+<!-- 			       D.FLD_CRT_DT,  -->
+<!-- 			       D.LAST_MDFCN_DT,  -->
+<!-- 			       D.FLD_DEL_YN,  -->
+<!-- 			       D.FILE_GROUP_NO,  -->
+<!-- 			       D.FLD_TY_CD,  -->
+<!-- 			       D.FLD_NM,  -->
+<!-- 			       D.UP_FLD_NM,  -->
+<!-- 			       A.FILE_NO,  -->
+<!-- 			       A.FILE_PATH,  -->
+<!-- 			       A.FILE_STRG_NM,  -->
+<!-- 			       A.FILE_ORGNL_NM,  -->
+<!-- 			       A.FILE_SZ,  -->
+<!-- 			       A.FILE_FANCYSIZE,  -->
+<!-- 			       A.FILE_CTR_DT,  -->
+<!-- 			       A.FILE_TYPE,  -->
+<!-- 			       A.FILE_DEL_YN, -->
+<!-- 			       ROW_NUMBER() OVER (ORDER BY D.FILE_GROUP_NO DESC) AS rnum -->
+<!-- 			    FROM  -->
+<!-- 			        DATA_DIRECTORY D -->
+<!-- 			    JOIN  -->
+<!-- 			        ATCH_FILE A ON D.FILE_GROUP_NO = A.FILE_GROUP_NO -->
+<!-- 			    WHERE  -->
+<!-- 			        D.EMPL_ID = #{emplId} -->
+<!-- 			        AND D.FLD_DEL_YN = 'N' -->
+<!-- 			        AND  D.FLD_TY_CD = 'P' -->
+<!-- 			        AND A.FILE_DEL_YN = 'N' -->
+<!-- 			) R -->
+		        
+<!-- 		        <![CDATA[ -->
+<!-- 		        WHERE r.rnum >= #{startRow} and r.rnum <= #{endRow} -->
+<!-- 				WHERE R.RNUM <= 18 -->
+<!-- 		        ]]> -->
+<!-- 		       ORDER BY r.rnum -->
+<!--     </select> -->
+
+	<select id="selectFileCount" parameterType="String" resultType="int">
+	SELECT COUNT *
+	FROM
+		(SELECT  D.FLD_NO, D.UP_FLD_NO, D.EMPL_ID, D.FLD_CRT_DT, D.LAST_MDFCN_DT
+		      , D.FLD_DEL_YN, D.FILE_GROUP_NO, D.FLD_TY_CD, D.FLD_NM, D.UP_FLD_NM
+		      , A.FILE_NO, A.FILE_PATH, A.FILE_STRG_NM, A.FILE_ORGNL_NM
+		      , A.FILE_SZ, A.FILE_FANCYSIZE, A.FILE_CTR_DT, A.FILE_TYPE, A.FILE_DEL_YN
+		 FROM  DATA_DIRECTORY D
+		     , ATCH_FILE A
+		 WHERE D.EMPL_ID = #{emplId}
+		  AND  D.FILE_GROUP_NO = A.FILE_GROUP_NO(+)
+		  AND  D.FLD_TY_CD = 'P'
+		  AND   A. FILE_DEL_YN != 'Y'
+		  AND   D. FLD_DEL_YN = 'N')
+	</select>
+
+	<select id="selectCommonAllfileList" parameterType="String" resultMap="directoryMap">
+		SELECT  D.FLD_NO, D.UP_FLD_NO, D.EMPL_ID, D.FLD_CRT_DT, D.LAST_MDFCN_DT
+		      , D.FLD_DEL_YN, D.FILE_GROUP_NO, D.FLD_TY_CD, D.FLD_NM, D.UP_FLD_NM
+		      , A.FILE_NO, A.FILE_PATH, A.FILE_STRG_NM, A.FILE_ORGNL_NM
+		      , A.FILE_SZ, A.FILE_FANCYSIZE, A.FILE_CTR_DT, A.FILE_TYPE, A.FILE_DEL_YN
+		 FROM  DATA_DIRECTORY D
+		     , ATCH_FILE A
+		 WHERE  D.FILE_GROUP_NO = A.FILE_GROUP_NO(+)
+		  AND   D.FLD_TY_CD = 'C'
+		  AND   A. FILE_DEL_YN != 'Y'
+		  AND   D. FLD_DEL_YN = 'N'
+	</select>
+	
+	<select id="selectDataList" parameterType="String" resultType="dataVO">
+		select 
+			fld_no, up_fld_no, empl_id, fld_crt_dt, last_mdfcn_dt, fld_del_yn, file_group_no, fld_ty_cd, fld_nm, up_fld_nm
+		from data_directory
+		where empl_id = #{emplId}
+		and fld_ty_cd = 'P'
+		AND FLD_DEL_YN = 'N'
+		
+	</select>
+	
+	<select id="selectCommonDataList" parameterType="String" resultType="dataVO">
+		select 
+			fld_no, up_fld_no, empl_id, fld_crt_dt, last_mdfcn_dt, fld_del_yn, file_group_no, fld_ty_cd, fld_nm, up_fld_nm
+		from data_directory
+		WHERE fld_ty_cd = 'C'
+		AND FLD_DEL_YN != 'Y'
+	</select>
+	
+	<insert id="insertFileData" useGeneratedKeys="true" parameterType="AttachFileVO">
+        INSERT INTO ATCH_FILE (FILE_GROUP_NO, FILE_NO, FILE_PATH, FILE_STRG_NM, FILE_ORGNL_NM, FILE_SZ, FILE_FANCYSIZE, FILE_CTR_DT, FILE_TYPE, FILE_DEL_YN)
+        VALUES (
+        	#{fileGroupNo}, 
+        	seq_file_no.nextval, 
+        	#{filePath}, 
+        	#{fileStrgNm}, 
+        	#{fileOrgnlNm}, 
+        	#{fileSz}, 
+        	#{fileFancysize}, 
+        	#{fileCtrDt}, 
+        	#{fileType}, 
+        	#{fileDelYn}
+        )
+    </insert>
+
+    <insert id="insertFolderData" parameterType="dataVO">
+		insert into data_directory(
+			fld_no, empl_id, fld_crt_dt, 
+			last_mdfcn_dt, fld_del_yn, 
+			fld_ty_cd, fld_nm
+		)values(
+			seq_fld_no.nextval, #{emplId}, sysdate, sysdate,
+			'N', 'P', #{fldNm} 
+		)
+	</insert>
+
+    <insert id="insertCommonFolderData" parameterType="dataVO">
+		insert into data_directory(
+			fld_no, empl_id, fld_crt_dt, 
+			last_mdfcn_dt, fld_del_yn, 
+			fld_ty_cd, fld_nm
+		)values(
+			seq_fld_no.nextval, #{emplId}, sysdate, sysdate,
+			'N', 'C', #{fldNm} 
+		)
+	</insert>
+
+    <select id="getNextFileGroupNo" resultType="int">
+        SELECT SEQ_FILE_GROUP_NO.NEXTVAL FROM DUAL
+    </select>
+    
+    <select id="getFgn0" parameterType="int" resultType="int">
+    	SELECT NVL(FILE_GROUP_NO,0) FILE_GROUP_NO FROM DATA_DIRECTORY
+		where fld_no=#{fldNo}
+    </select>
+   
+    
+    <select id="selectFileList" parameterType="int" resultType="AttachFileVO">
+    	SELECT 
+    	FILE_GROUP_NO, FILE_NO, FILE_PATH, FILE_STRG_NM, FILE_ORGNL_NM, FILE_SZ, FILE_FANCYSIZE, FILE_CTR_DT, FILE_TYPE, FILE_DEL_YN
+    	FROM ATCH_FILE
+    	WHERE FILE_GROUP_NO = #{fileGroupNo}
+    	AND  FILE_DEL_YN != 'Y'
+    	
+<!--     	SELECT ATCH_FILE.* -->
+<!-- 		FROM ATCH_FILE -->
+<!-- 		JOIN DATA_DIRECTORY -->
+<!-- 		ON ATCH_FILE.FILE_GROUP_NO = DATA_DIRECTORY.FILE_GROUP_NO; -->
+<!--     	WHERE FILE_GROUP_NO = #{fileGroupNo} -->
+    </select>
+    
+    <select id="selectTotalUsage" parameterType="dataVO" resultType="hashMap">
+    	SELECT D.EMPL_ID,
+		       ROUND(SUM(A.FILE_SZ / 1024 / 1024)) AS TOTAL_USAGE_MB
+		FROM ATCH_FILE A
+		INNER JOIN DATA_DIRECTORY D ON D.FILE_GROUP_NO = A.FILE_GROUP_NO
+		WHERE D.EMPL_ID = #{emplId}
+		AND D.FLD_TY_CD = 'P'
+		AND D.FLD_DEL_YN = 'N'
+		GROUP BY D.EMPL_ID
+    </select>
+    
+<!--     <select id="getPercent" parameterType="dataVO" resultType="hashMap" > -->
+<!--     	SELECT D.EMPL_ID, -->
+<!--        		ROUND(SUM(A.FILE_SZ / 1024 / 1024) / 3 , 1) AS percent -->
+<!-- 		FROM ATCH_FILE A -->
+<!-- 		INNER JOIN DATA_DIRECTORY D ON D.FILE_GROUP_NO = A.FILE_GROUP_NO -->
+<!-- 		WHERE D.EMPL_ID = #{emplId} -->
+<!-- 		GROUP BY D.EMPL_ID; -->
+<!--     </select> -->
+    
+    <select id="getNextFileNo" parameterType="int" resultType="int">
+    	SELECT NVL(MAX(FILE_NO),0)+1 FROM ATCH_FILE
+    	WHERE FILE_GROUP_NO = #{fileGroupNo}
+    </select>
+
+	
+	<insert id="insertFolderFileData" useGeneratedKeys="true" parameterType="AttachFileVO">
+        INSERT INTO ATCH_FILE (FILE_GROUP_NO, FILE_NO, FILE_PATH, FILE_STRG_NM, FILE_ORGNL_NM, FILE_SZ, FILE_FANCYSIZE, FILE_CTR_DT, FILE_TYPE, FILE_DEL_YN)
+        VALUES (
+        	#{fileGroupNo}, 
+        	#{fileNo}, 
+        	#{filePath}, 
+        	#{fileStrgNm}, 
+        	#{fileOrgnlNm}, 
+        	#{fileSz}, 
+        	#{fileFancysize}, 
+        	#{fileCtrDt}, 
+        	#{fileType}, 
+        	#{fileDelYn}
+        )
+    </insert>
+    
+    
+     <select id="getFile" parameterType="hashMap" resultType="customFileVO">
+	    SELECT file_group_no, file_no, file_path, file_strg_nm, file_orgnl_nm, file_sz, file_fancysize, file_ctr_dt, file_type, file_del_yn
+	    FROM ATCH_FILE
+	    WHERE file_group_no = #{fileGroupNo} AND file_no = #{fileNo}
+	</select>
+    
+     <select id="search" parameterType="hashMap" resultMap="directoryMap" >
+	    SELECT 
+	    	D.FLD_NO, D.UP_FLD_NO, D.EMPL_ID, D.FLD_CRT_DT, D.LAST_MDFCN_DT,
+	       	D.FLD_DEL_YN, D.FILE_GROUP_NO, D.FLD_TY_CD, D.FLD_NM, D.UP_FLD_NM,
+	       	A.FILE_NO, A.FILE_PATH, A.FILE_STRG_NM, A.FILE_ORGNL_NM,
+	       	A.FILE_SZ, A.FILE_FANCYSIZE, A.FILE_CTR_DT, A.FILE_TYPE, A.FILE_DEL_YN
+	   FROM DATA_DIRECTORY D
+	   LEFT JOIN ATCH_FILE A ON D.FILE_GROUP_NO = A.FILE_GROUP_NO
+	   WHERE D.EMPL_ID = #{emplId}
+	   AND D.FLD_TY_CD = 'P'
+	   AND A.FILE_DEL_YN != 'Y'
+	   AND D.FLD_DEL_YN = 'N'
+	   <if test="keyWord != '' || null">
+	   AND INSTR(LOWER(A.FILE_ORGNL_NM), LOWER(#{keyWord})) > 0
+	   </if>
+	   <if test="searchExtension != 'all'">
+	   	AND INSTR(LOWER(A.FILE_ORGNL_NM), LOWER(#{searchExtension})) > 0
+	   </if>
+	</select>
+    
+     <select id="commonSearch" parameterType="hashMap" resultMap="directoryMap" >
+	    SELECT 
+	    	D.FLD_NO, D.UP_FLD_NO, D.EMPL_ID, D.FLD_CRT_DT, D.LAST_MDFCN_DT,
+	       	D.FLD_DEL_YN, D.FILE_GROUP_NO, D.FLD_TY_CD, D.FLD_NM, D.UP_FLD_NM,
+	       	A.FILE_NO, A.FILE_PATH, A.FILE_STRG_NM, A.FILE_ORGNL_NM,
+	       	A.FILE_SZ, A.FILE_FANCYSIZE, A.FILE_CTR_DT, A.FILE_TYPE, A.FILE_DEL_YN
+	   FROM DATA_DIRECTORY D
+	   LEFT JOIN ATCH_FILE A ON D.FILE_GROUP_NO = A.FILE_GROUP_NO
+	   WHERE D.FLD_DEL_YN = 'N'
+	   AND D.FLD_TY_CD = 'C'
+	   AND A.FILE_DEL_YN != 'Y'
+	   <if test="keyWord != '' || null">
+	   AND INSTR(LOWER(A.FILE_ORGNL_NM), LOWER(#{keyWord})) > 0
+	   </if>
+	   <if test="searchExtension != 'all'">
+	   	AND INSTR(LOWER(A.FILE_ORGNL_NM), LOWER(#{searchExtension})) > 0
+	   </if>
+	</select>
+    
+     <select id="commonFolderSearch" parameterType="hashMap" resultMap="directoryMap" >
+	  SELECT
+		    D.FLD_NO, D.UP_FLD_NO, D.EMPL_ID, D.FLD_CRT_DT, D.LAST_MDFCN_DT,
+		    D.FLD_DEL_YN, D.FILE_GROUP_NO, D.FLD_TY_CD, D.FLD_NM, D.UP_FLD_NM,
+		    A.FILE_NO, A.FILE_PATH, A.FILE_STRG_NM, A.FILE_ORGNL_NM,
+		    A.FILE_SZ, A.FILE_FANCYSIZE, A.FILE_CTR_DT, A.FILE_TYPE, A.FILE_DEL_YN
+		FROM DATA_DIRECTORY D
+		LEFT JOIN ATCH_FILE A ON D.FILE_GROUP_NO = A.FILE_GROUP_NO
+		WHERE D.FLD_NO = #{fldNo}
+		AND D.FLD_TY_CD = 'C'
+		AND A.FILE_DEL_YN != 'Y'
+		AND D.FLD_DEL_YN != 'Y'
+		<if test="keyWord != '' || null">
+		AND INSTR(LOWER(A.FILE_ORGNL_NM), LOWER(#{keyWord})) > 0
+		</if>
+		<if test="searchExtension != 'all'">
+		    AND INSTR(LOWER(A.FILE_ORGNL_NM), LOWER(#{searchExtension})) > 0
+		</if>
+	</select>
+    
+     <select id="folderSearch" parameterType="hashMap" resultMap="directoryMap" >
+	  SELECT
+		    D.FLD_NO, D.UP_FLD_NO, D.EMPL_ID, D.FLD_CRT_DT, D.LAST_MDFCN_DT,
+		    D.FLD_DEL_YN, D.FILE_GROUP_NO, D.FLD_TY_CD, D.FLD_NM, D.UP_FLD_NM,
+		    A.FILE_NO, A.FILE_PATH, A.FILE_STRG_NM, A.FILE_ORGNL_NM,
+		    A.FILE_SZ, A.FILE_FANCYSIZE, A.FILE_CTR_DT, A.FILE_TYPE, A.FILE_DEL_YN
+		FROM DATA_DIRECTORY D
+		LEFT JOIN ATCH_FILE A ON D.FILE_GROUP_NO = A.FILE_GROUP_NO
+		WHERE D.FLD_NO = #{fldNo}
+		AND D.FLD_TY_CD = 'P'
+		AND A.FILE_DEL_YN != 'Y'
+		AND D.FLD_DEL_YN != 'Y'
+		<if test="keyWord != '' || null">
+		AND INSTR(LOWER(A.FILE_ORGNL_NM), LOWER(#{keyWord})) > 0
+		</if>
+		<if test="searchExtension != 'all'">
+		    AND INSTR(LOWER(A.FILE_ORGNL_NM), LOWER(#{searchExtension})) > 0
+		</if>
+	</select>
+	
+	<select id="getFldNo" parameterType="int" resultType="int">
+		SELECT nvl(FLD_NO,0) FLD_NO
+        FROM  data_directory
+        where file_group_no = #{fileGroupNo}
+	</select>
+	
+    <update id="fileDelete" parameterType="AttachFileVO">
+    	UPDATE ATCH_FILE
+    	SET FILE_DEL_YN = 'Y'
+    	WHERE FILE_GROUP_NO = #{fileGroupNo}
+    	AND FILE_NO = #{fileNo}
+    </update>
+    
+	<update id="filegroupNoUpdate" parameterType="dataVO">
+		 UPDATE DATA_DIRECTORY 
+		 SET FILE_GROUP_NO = #{fileGroupNo}
+		 WHERE FLD_NO = #{fldNo}
+	</update>
+	
+	<update id="deleteFolder" parameterType="int">
+		UPDATE DATA_DIRECTORY
+		SET FLD_DEL_YN = 'Y'
+		WHERE FLD_NO = #{fldNo}
+	</update>
+	
+	
+   
+</mapper>

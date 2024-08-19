@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.mapper.IWorkMapper">
+
+	<select id="workInfo" resultType="workVO">
+		SELECT 
+		    EMPL_ID,
+		    TO_CHAR(TRUNC(WORK_BGNG_HR, 'IW'), 'YYYY-MM-DD') AS workBgngHr,
+		    SUM(
+		        CASE
+		            WHEN WORK_END_HR >= WORK_BGNG_HR THEN
+		                (WORK_END_HR - WORK_BGNG_HR) * 24
+		            ELSE
+		                0
+		        END
+		    ) AS workWeekHours
+		FROM works
+		WHERE EMPL_ID = #{emplId}
+		AND TO_CHAR(WORK_BGNG_HR, 'YYYY-MM') LIKE '2024-' || #{workMonth}
+		GROUP BY EMPL_ID, TRUNC(WORK_BGNG_HR, 'IW')
+		ORDER BY workBgngHr
+	</select>
+
+	<select  id="weekListSelect" resultType="workVO">
+		SELECT 
+		    EMPL_ID,
+		    TO_CHAR(WORK_BGNG_HR, 'YYYY-MM-DD HH24:MI:SS') AS workBgngHr,
+		    TO_CHAR(WORK_END_HR, 'YYYY-MM-DD HH24:MI:SS') AS workEndHr,
+		    (WORK_END_HR-WORK_BGNG_HR)*24 AS workDayHours,
+		    TO_CHAR(WORK_BGNG_HR, 'IW') - TO_CHAR(TRUNC(WORK_BGNG_HR, 'MM'), 'IW') + 1 AS numWeek
+		FROM works
+		WHERE EMPL_ID = #{emplId}
+		 AND TO_CHAR(WORK_BGNG_HR, 'YYYY-MM') LIKE '2024-' || #{workMonth}
+		ORDER BY 2
+	</select>
+
+
+	
+	<insert id="startWorkChk">
+	    INSERT INTO WORKS(WORK_NO, EMPL_ID, WORK_BGNG_HR, WORK_END_HR, ATT_DT)
+	    VALUES(seq_work_no.NEXTVAL, #{emplId}, TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' ' || #{startTime}, 'YYYY-MM-DD HH24:MI'), 
+	    TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' ' || '00:00', 'YYYY-MM-DD HH24:MI'), SYSDATE)
+	</insert>
+
+
+	<update id="endWorkChk">
+		UPDATE WORKS
+		SET WORK_END_HR = SYSDATE
+		WHERE EMPL_ID = #{emplId}
+		AND TO_CHAR(WORK_BGNG_HR, 'YYYY-MM-DD') = TO_CHAR(SYSDATE, 'YYYY-MM-DD')
+	</update>
+
+	<select id="todayWorkTime" resultType="workVO">
+		SELECT 
+			WORK_BGNG_HR,
+			WORK_END_HR
+		FROM WORKS
+		WHERE TO_CHAR(WORK_BGNG_HR, 'YYYY-MM-DD') = TO_CHAR(SYSDATE, 'YYYY-MM-DD')
+		AND EMPL_ID = #{emplId}
+		
+	</select>
+
+	<insert id="workNullCheckIn">
+	    INSERT INTO WORKS (WORK_NO, EMPL_ID, WORK_BGNG_HR, WORK_END_HR, ATT_DT)
+	    SELECT 
+	        seq_work_no.NEXTVAL, 
+	        EMPL_ID, 
+	        TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD')||' '|| '00:00', 'YYYY-MM-DD HH24:MI'), 
+	        TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD')||' '|| '00:00', 'YYYY-MM-DD HH24:MI'), 
+	        TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD')||' '|| '00:00', 'YYYY-MM-DD HH24:MI')
+	    FROM employee
+	    WHERE EMPL_ID NOT IN (
+	        SELECT EMPL_ID
+	        FROM WORKS
+	        WHERE TO_CHAR(ATT_DT, 'YYYY-MM-DD') = TO_CHAR(SYSDATE, 'YYYY-MM-DD')
+	          AND WORK_BGNG_HR IS NOT NULL
+	    )
+	</insert>
+	
+	<select id="hdList" resultType="workVO">
+		SELECT 
+			EMPL_ID, HD_BGNG_HR, HD_END_HR
+		FROM 
+			HD_HISTORY
+		WHERE 
+			EMPL_ID = #{emplId}
+	</select>
+
+	<select id="workingCount" resultType="int">
+	select 
+		count(*)
+	from 
+		project_task
+	where 
+		empl_id = #{emplId}
+	and 
+		TKST_CODE = 'TKST001'
+	</select>
+	
+	
+	
+	
+</mapper>

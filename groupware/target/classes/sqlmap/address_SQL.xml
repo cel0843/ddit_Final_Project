@@ -1,0 +1,437 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.mapper.IAdresMapper">
+
+    <!-- 외부인원 관련 쿼리들 -->
+    <select id="colist" resultType="adresVO">
+        SELECT 
+            adres_nm, 
+            adres_jbttl, 
+            adres_eml, 
+            adres_telno, 
+            adres_co_nm, 
+            adres_no,
+            adres_rmrk
+        FROM 
+            address_book
+    </select>
+
+    <select id="coRead" resultType="adresVO">
+        SELECT 
+            adres_nm, 
+            adres_jbttl, 
+            adres_eml, 
+            adres_telno, 
+            adres_co_nm, 
+            adres_no,
+            adres_rmrk
+        FROM 
+            address_book
+        WHERE 
+            adres_no = #{adresNo}
+    </select>
+
+    <insert id="creat" parameterType="adresVO">
+        INSERT INTO address_book 
+            (empl_id, adres_nm, adres_telno, adres_co_nm, adres_jbttl, adres_eml, adres_rmrk, adres_no)
+        VALUES 
+            (#{emplId}, #{adresNm}, #{adresTelno}, #{adresCoNm}, #{adresJbttl}, #{adresEml}, #{adresRmrk}, SEQ_adres_no.nextval)
+    </insert>
+
+    <select id="read" parameterType="string" resultType="emplVO">
+        select e.empl_id as emplId,
+               e.dept_cd , 
+               e.empl_nm as emplNm,
+               e.email as email,
+               e.telno as telno,
+               e.zip ,
+               e.bsc_addr as bscAddr,
+               e.dtl_addr as dtlAddr,
+               e.jncmp_ymd as jncmpYmd,
+               d.dept_nm as deptNm
+        from employee e , department d
+        where empl_id = #{emplId}
+        and e.dept_cd = d.dept_cd
+    </select>
+
+    <delete id="delete" parameterType="int">
+        DELETE FROM address_book
+        WHERE adres_no = #{adresNo}
+    </delete>
+
+    <update id="update" parameterType="adresVO">
+        UPDATE address_book
+        SET 
+            adres_nm = #{adresNm},
+            adres_co_nm = #{adresCoNm},
+            adres_jbttl = #{adresJbttl},
+            adres_telno = #{adresTelno},
+            adres_eml = #{adresEml},
+            adres_rmrk = #{adresRmrk}
+        WHERE 
+            adres_no = #{adresNo}
+    </update>
+
+    <!-- 외부인원 주소록 페이징 및 검색 쿼리들 -->
+    <select id="selectAllPaged" resultType="adresVO">
+        <![CDATA[
+        SELECT * FROM (
+            SELECT A.*, ROWNUM AS rnum
+            FROM (
+                SELECT 
+                	EMPL_ID, ADRES_NM, ADRES_TELNO, ADRES_CO_NM, ADRES_JBTTL, ADRES_EML, ADRES_RMRK , ADRES_NO
+                FROM address_book
+                ORDER BY adres_no
+            ) A
+            WHERE ROWNUM <= #{endRow}
+        )
+        WHERE rnum >= #{startRow}
+        ]]>
+    </select>
+
+    <select id="searchByNamePaged" resultType="adresVO">
+        <![CDATA[
+        SELECT * FROM (
+            SELECT A.*, ROWNUM AS rnum
+            FROM (
+                SELECT * FROM address_book
+                WHERE adres_nm LIKE '%' || #{adresNm} || '%'
+                ORDER BY adres_no
+            ) A
+            WHERE ROWNUM <= #{endRow}
+        )
+        WHERE rnum >= #{startRow}
+        ]]>
+    </select>
+
+    <select id="searchByDepartmentPaged" resultType="adresVO">
+        <![CDATA[
+        SELECT * FROM (
+            SELECT A.*, ROWNUM AS rnum
+            FROM (
+                SELECT * FROM address_book
+                WHERE adres_co_nm LIKE '%' || #{adresCoNm} || '%'
+                ORDER BY adres_no
+            ) A
+            WHERE ROWNUM <= #{endRow}
+        )
+        WHERE rnum >= #{startRow}
+        ]]>
+    </select>
+
+    <select id="searchByEmailPaged" resultType="adresVO">
+        <![CDATA[
+        SELECT * FROM (
+            SELECT A.*, ROWNUM AS rnum
+            FROM (
+                SELECT * FROM address_book
+                WHERE adres_eml LIKE '%' || #{adresEml} || '%'
+                ORDER BY adres_no
+            ) A
+            WHERE ROWNUM <= #{endRow}
+        )
+        WHERE rnum >= #{startRow}
+        ]]>
+    </select>
+
+    <select id="countAll" resultType="int">
+        SELECT COUNT(*) FROM address_book
+    </select>
+
+    <select id="countByName" resultType="int">
+        SELECT COUNT(*) FROM address_book
+        WHERE adres_nm LIKE '%' || #{adresNm} || '%'
+    </select>
+
+    <select id="countByDepartment" resultType="int">
+        SELECT COUNT(*) FROM address_book
+        WHERE adres_co_nm LIKE '%' || #{adresCoNm} || '%'
+    </select>
+
+    <select id="countByEmail" resultType="int">
+        SELECT COUNT(*) FROM address_book
+        WHERE adres_eml LIKE '%' || #{adresEml} || '%'
+    </select>
+
+    <!-- 사내인원 전체 리스트 -->
+    <select id="emplList" resultType="emplVO">
+        <![CDATA[
+        SELECT 
+            e.empl_nm, 
+            d.dept_nm AS dept_cd, 
+            c.cm_cd_nm AS position_cd, 
+            e.email, 
+            e.telno,
+            e.empl_id
+        FROM 
+            employee e
+        JOIN 
+            department d ON e.dept_cd = d.dept_cd
+        JOIN 
+            common_code c ON e.position_cd = c.cm_cd
+        WHERE 
+            c.cm_cd_group_id LIKE '%POSITION%'
+        ]]>
+    </select>
+
+    <!-- 사내인원 전체 리스트 페이징 -->
+    <select id="selectEmployeeAllPaged" resultType="emplVO">
+        <![CDATA[
+        SELECT * FROM (
+            SELECT 
+                e.empl_nm, 
+                d.dept_nm AS dept_cd, 
+                c.cm_cd_nm AS position_cd, 
+                e.email, 
+                e.telno,
+                e.empl_id,
+                ROWNUM AS rnum
+            FROM 
+                employee e
+            JOIN 
+                department d ON e.dept_cd = d.dept_cd
+            JOIN 
+                common_code c ON e.position_cd = c.cm_cd
+            WHERE 
+                c.cm_cd_group_id LIKE '%POSITION%'
+            AND 
+                ROWNUM <= #{endRow}
+            ORDER BY e.empl_id
+        )
+        WHERE rnum >= #{startRow}
+        ]]>
+    </select>
+
+    <!-- 이름으로 검색된 결과 페이징 -->
+    <select id="searchEmployeeByNamePaged" resultType="emplVO">
+        <![CDATA[
+        SELECT * FROM (
+            SELECT 
+                e.empl_nm, 
+                d.dept_nm AS dept_cd, 
+                c.cm_cd_nm AS position_cd, 
+                e.email, 
+                e.telno,
+                e.empl_id,
+                ROWNUM AS rnum
+            FROM 
+                employee e
+            JOIN 
+                department d ON e.dept_cd = d.dept_cd
+            JOIN 
+                common_code c ON e.position_cd = c.cm_cd
+            WHERE 
+                e.empl_nm LIKE '%' || #{emplNm} || '%'
+            AND 
+                c.cm_cd_group_id LIKE '%POSITION%'
+            AND 
+                ROWNUM <= #{endRow}
+            ORDER BY e.empl_id
+        )
+        WHERE rnum >= #{startRow}
+        ]]>
+    </select>
+
+    <!-- 부서로 검색된 결과 페이징 -->
+    <select id="searchEmployeeByDepartmentPaged" resultType="emplVO">
+        <![CDATA[
+        SELECT * FROM (
+            SELECT 
+                e.empl_nm, 
+                d.dept_nm AS dept_cd, 
+                c.cm_cd_nm AS position_cd, 
+                e.email, 
+                e.telno,
+                e.empl_id,
+                ROWNUM AS rnum
+            FROM 
+                employee e
+            JOIN 
+                department d ON e.dept_cd = d.dept_cd
+            JOIN 
+                common_code c ON e.position_cd = c.cm_cd
+            WHERE 
+                d.dept_nm LIKE '%' || #{deptCd} || '%'
+            AND 
+                c.cm_cd_group_id LIKE '%POSITION%'
+            AND 
+                ROWNUM <= #{endRow}
+            ORDER BY e.empl_id
+        )
+        WHERE rnum >= #{startRow}
+        ]]>
+    </select>
+
+    <!-- 직위로 검색된 결과 페이징 -->
+    <select id="searchEmployeeByPositionPaged" resultType="emplVO">
+        <![CDATA[
+        SELECT * FROM (
+            SELECT 
+                e.empl_nm, 
+                d.dept_nm AS dept_cd, 
+                c.cm_cd_nm AS position_cd, 
+                e.email, 
+                e.telno,
+                e.empl_id,
+                ROWNUM AS rnum
+            FROM 
+                employee e
+            JOIN 
+                department d ON e.dept_cd = d.dept_cd
+            JOIN 
+                common_code c ON e.position_cd = c.cm_cd
+            WHERE 
+                c.cm_cd_nm LIKE '%' || #{positionCd} || '%'
+            AND 
+                c.cm_cd_group_id LIKE '%POSITION%'
+            AND 
+                ROWNUM <= #{endRow}
+            ORDER BY e.empl_id
+        )
+        WHERE rnum >= #{startRow}
+        ]]>
+    </select>
+
+    <!-- 사내인원 전체 레코드 수 -->
+    <select id="countAllEmployee" resultType="int">
+        <![CDATA[
+        SELECT COUNT(*) FROM employee
+        JOIN 
+            department d ON employee.dept_cd = d.dept_cd
+        JOIN 
+            common_code c ON employee.position_cd = c.cm_cd
+        WHERE 
+            c.cm_cd_group_id LIKE '%POSITION%'
+        ]]>
+    </select>
+
+    <!-- 이름으로 검색된 전체 레코드 수 -->
+    <select id="countEmployeeByName" resultType="int">
+        <![CDATA[
+        SELECT COUNT(*) FROM employee 
+        JOIN 
+            department d ON employee.dept_cd = d.dept_cd
+        JOIN 
+            common_code c ON employee.position_cd = c.cm_cd
+        WHERE 
+            employee.empl_nm LIKE '%' || #{emplNm} || '%'
+        AND 
+            c.cm_cd_group_id LIKE '%POSITION%'
+        ]]>
+    </select>
+
+    <!-- 부서로 검색된 전체 레코드 수 -->
+    <select id="countEmployeeByDepartment" resultType="int">
+        <![CDATA[
+        SELECT COUNT(*) FROM employee 
+        JOIN 
+            department d ON employee.dept_cd = d.dept_cd
+        JOIN 
+            common_code c ON employee.position_cd = c.cm_cd
+        WHERE 
+            employee.dept_cd LIKE '%' || #{deptCd} || '%'
+        AND 
+            c.cm_cd_group_id LIKE '%POSITION%'
+        ]]>
+    </select>
+
+    <!-- 직위로 검색된 전체 레코드 수 -->
+    <select id="countEmployeeByPosition" resultType="int">
+        <![CDATA[
+        SELECT COUNT(*) FROM employee 
+        JOIN 
+            department d ON employee.dept_cd = d.dept_cd
+        JOIN 
+            common_code c ON employee.position_cd = c.cm_cd
+        WHERE 
+            employee.position_cd LIKE '%' || #{positionCd} || '%'
+        AND 
+            c.cm_cd_group_id LIKE '%POSITION%'
+        ]]>
+    </select>
+
+    <!-- 통합검색 및 페이징 쿼리들 -->
+    <select id="searchAddressesPaged" resultType="adresVO">
+        <![CDATA[
+        SELECT * FROM (
+            SELECT A.*, ROWNUM AS rnum
+            FROM (
+                SELECT * FROM address_book
+                WHERE 
+                    (adres_nm LIKE '%' || #{searchText,jdbcType=VARCHAR} || '%' AND #{select,jdbcType=VARCHAR} = 'adresNm')
+                    OR (adres_jbttl LIKE '%' || #{searchText,jdbcType=VARCHAR} || '%' AND #{select,jdbcType=VARCHAR} = 'adresJbttl')
+                    OR (adres_eml LIKE '%' || #{searchText,jdbcType=VARCHAR} || '%' AND #{select,jdbcType=VARCHAR} = 'adresEml')
+                    OR (adres_telno LIKE '%' || #{searchText,jdbcType=VARCHAR} || '%' AND #{select,jdbcType=VARCHAR} = 'adresTelno')
+                    OR (adres_co_nm LIKE '%' || #{searchText,jdbcType=VARCHAR} || '%' AND #{select,jdbcType=VARCHAR} = 'adresCoNm')
+                ORDER BY adres_no
+            ) A
+            WHERE ROWNUM <= #{endRow,jdbcType=INTEGER}
+        )
+        WHERE rnum >= #{startRow,jdbcType=INTEGER}
+        ]]>
+    </select>
+
+    <select id="countAddresses" resultType="int">
+        <![CDATA[
+        SELECT COUNT(*) FROM address_book
+        WHERE 
+            (adres_nm LIKE '%' || #{searchText,jdbcType=VARCHAR} || '%' AND #{select,jdbcType=VARCHAR} = 'adresNm')
+            OR (adres_jbttl LIKE '%' || #{searchText,jdbcType=VARCHAR} || '%' AND #{select,jdbcType=VARCHAR} = 'adresJbttl')
+            OR (adres_eml LIKE '%' || #{searchText,jdbcType=VARCHAR} || '%' AND #{select,jdbcType=VARCHAR} = 'adresEml')
+            OR (adres_telno LIKE '%' || #{searchText,jdbcType=VARCHAR} || '%' AND #{select,jdbcType=VARCHAR} = 'adresTelno')
+            OR (adres_co_nm LIKE '%' || #{searchText,jdbcType=VARCHAR} || '%' AND #{select,jdbcType=VARCHAR} = 'adresCoNm')
+        ]]>
+    </select>
+
+    <select id="searchEmployeePaged" resultType="emplVO">
+        <![CDATA[
+        SELECT * FROM (
+            SELECT 
+                e.empl_nm, 
+                d.dept_nm AS dept_cd, 
+                c.cm_cd_nm AS position_cd, 
+                e.email, 
+                e.telno,
+                e.empl_id,
+                ROWNUM AS rnum
+            FROM 
+                employee e
+            JOIN 
+                department d ON e.dept_cd = d.dept_cd
+            JOIN 
+                common_code c ON e.position_cd = c.cm_cd
+            WHERE 
+                c.cm_cd_group_id LIKE '%POSITION%'
+                AND (
+                    (#{select,jdbcType=VARCHAR} = 'emplNm' AND e.empl_nm LIKE '%' || #{searchText,jdbcType=VARCHAR} || '%') OR
+                    (#{select,jdbcType=VARCHAR} = 'deptCd' AND d.dept_nm LIKE '%' || #{searchText,jdbcType=VARCHAR} || '%') OR
+                    (#{select,jdbcType=VARCHAR} = 'positionCd' AND c.cm_cd_nm LIKE '%' || #{searchText,jdbcType=VARCHAR} || '%') OR
+                    (#{select,jdbcType=VARCHAR} = 'email' AND e.email LIKE '%' || #{searchText,jdbcType=VARCHAR} || '%') OR
+                    (#{select,jdbcType=VARCHAR} = 'telno' AND e.telno LIKE '%' || #{searchText,jdbcType=VARCHAR} || '%')
+                )
+            ORDER BY e.empl_id
+        )
+        WHERE rnum >= #{startRow,jdbcType=INTEGER} AND rnum <= #{endRow,jdbcType=INTEGER}
+        ]]>
+    </select>
+
+    <select id="countEmployee" resultType="int">
+        <![CDATA[
+        SELECT COUNT(*)
+        FROM employee e
+        JOIN department d ON e.dept_cd = d.dept_cd
+        JOIN common_code c ON e.position_cd = c.cm_cd
+        WHERE 
+            c.cm_cd_group_id LIKE '%POSITION%'
+            AND (
+                (#{select,jdbcType=VARCHAR} = 'emplNm' AND e.empl_nm LIKE '%' || #{searchText,jdbcType=VARCHAR} || '%') OR
+                (#{select,jdbcType=VARCHAR} = 'deptCd' AND d.dept_nm LIKE '%' || #{searchText,jdbcType=VARCHAR} || '%') OR
+                (#{select,jdbcType=VARCHAR} = 'positionCd' AND c.cm_cd_nm LIKE '%' || #{searchText,jdbcType=VARCHAR} || '%') OR
+                (#{select,jdbcType=VARCHAR} = 'email' AND e.email LIKE '%' || #{searchText,jdbcType=VARCHAR} || '%') OR
+                (#{select,jdbcType=VARCHAR} = 'telno' AND e.telno LIKE '%' || #{searchText,jdbcType=VARCHAR} || '%')
+            )
+        ]]>
+    </select>
+
+</mapper>

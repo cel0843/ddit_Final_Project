@@ -1,0 +1,794 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.mapper.IApprovalMapper">
+	
+	<!-- 결재문서 양식 목록 조회 -->
+	<select id="formList" resultType="AprvFormVO">
+		SELECT	FORM_CD		
+ 			  , FORM_TTL, FORM_CN
+ 			  , FORM_REG_YMD
+ 			  , FORM_MDFCN_YMD
+ 			  , DCRB_PSBLTY_YN
+ 			  , USE_YN
+ 			  , APRV_TY
+ 		  FROM  APPROVAL_FORM
+ 		 WHERE 1=1
+ 		<if test="aprvTy != null and aprvTy != ''">
+ 		   AND APRV_TY = #{aprvTy}
+ 		</if>
+ 	  ORDER BY USE_YN DESC
+	</select>
+	
+	<!-- 1개의 양식 조회 -->
+	<select id="formOne" resultType="AprvFormVO">
+		SELECT	
+			    FORM_CD
+			  , FORM_TTL
+			  , FORM_CN
+			  , FORM_REG_YMD
+			  , FORM_MDFCN_YMD
+			  , DCRB_PSBLTY_YN
+			  , USE_YN, APRV_TY
+		  FROM APPROVAL_FORM
+		 WHERE FORM_CD = #{formCd}
+	</select>
+	
+	<!-- 양식 사용여부 업데이트 -->
+	<update id="updateUse" parameterType="AprvFormVO">
+	  UPDATE APPROVAL_FORM		
+	     SET
+	         USE_YN = #{useYn}
+	   WHERE FORM_CD = #{formCd}
+	</update>
+	
+	<!-- 전결 가능 양식인지 아닌지  수정가능 -->
+	<update id="updateDcrb" parameterType="AprvFormVO">
+	  UPDATE APPROVAL_FORM		
+	     SET
+	         DCRB_PSBLTY_YN = #{dcrbPsbltyYn}
+	   WHERE FORM_CD = #{formCd}
+	</update>
+	
+	<!-- 양식 등록 -->
+	<insert id="addForm" useGeneratedKeys="true" keyProperty="formCd">	
+		<selectKey keyProperty="formCd" resultType="String" order="BEFORE">
+	        <choose>
+	            <when test="aprvTy == 'AR'">
+	                SELECT 'AR' || TO_CHAR(SEQ_FORM_AR_NO.NEXTVAL, 'FM0000') AS FORM_CD
+	                FROM DUAL
+	            </when>
+	            <when test="aprvTy == 'BP'">
+	                SELECT 'BP' || TO_CHAR(SEQ_FORM_BP_NO.NEXTVAL, 'FM0000') AS FORM_CD
+	                FROM DUAL
+	            </when>
+	            <otherwise>
+	                SELECT 'HR' || TO_CHAR(SEQ_FORM_HR_NO.NEXTVAL, 'FM0000') AS FORM_CD
+	                FROM DUAL
+	            </otherwise>
+	        </choose>
+    	</selectKey>
+	    INSERT INTO APPROVAL_FORM (FORM_CD, FORM_TTL, FORM_CN, FORM_REG_YMD,FORM_MDFCN_YMD, DCRB_PSBLTY_YN, USE_YN, APRV_TY)
+	    VALUES (#{formCd}, #{formTtl}, #{formCn}, sysdate, sysdate, 'Y', 'Y', #{aprvTy})
+	</insert>
+	
+	<!-- 양식 수정 -->
+	<update id="updateForm">
+		UPDATE approval_form
+		   SET FORM_TTL = #{formTtl}
+    	   	   , FORM_CN = #{formCn}  
+    		   , FORM_MDFCN_YMD = sysdate  
+    		   , APRV_TY = #{aprvTy}   
+	     WHERE FORM_CD = #{formCd} 
+	</update>
+	
+	<!-- 양식 삭제 -->
+	<delete id="delForm">
+		DELETE FROM APPROVAL_FORM 
+			  WHERE FORM_CD = #{formCd} 
+	</delete>
+
+	<!-- 결재할 문서 목록 조회 -->
+	<select id="aprvDocList" resultType="AprvDocumentVO">
+		SELECT	A.APRV_ID
+		     , A.FORM_CD
+		     , A.EMPL_ID
+		     , B.EMPL_NM
+		     , A.APRV_TTL
+		     , A.APRV_CN
+		     , A.ATRZ_DMND_DT
+		     , A.ATRZ_CMPTN_DT
+		     , A.PRGRS_STTS_TY
+		     , A.FILE_GROUP_NO
+		     , C.APRV_STATUS
+		  FROM APPROVAL_DOCUMENT A
+		  JOIN EMPLOYEE B ON A.EMPL_ID = B.EMPL_ID
+		  JOIN APPROVAL_LINE C ON A.APRV_ID = C.APRV_ID
+		 WHERE 1 = 1
+		 AND C.EMPL_ID = #{emplId}
+		<if test="prgrsSttsTy != null and prgrsSttsTy != ''">
+			AND A.PRGRS_STTS_TY = #{prgrsSttsTy}
+		</if>
+		<if test="aprvStatus != null and aprvStatus != ''">
+			AND (
+				SELECT APRV_STATUS
+				  FROM APPROVAL_LINE C 
+				 WHERE C.APRV_ID = A.APRV_ID
+				   AND C.APRV_ORDER = (SELECT MAX(APRV_ORDER) FROM APPROVAL_LINE D WHERE D.APRV_ID = A.APRV_ID AND APRV_DT IS NOT NULL)
+			) = #{aprvStatus}
+		</if>
+		ORDER BY A.ATRZ_DMND_DT DESC
+	</select>	
+	<!-- 기안한 문서 목록 조회 -->
+	<select id="draftList" resultType="AprvDocumentVO">
+		SELECT	A.APRV_ID
+				, A.FORM_CD
+				, A.EMPL_ID
+				, B.EMPL_NM
+				, A.APRV_TTL
+				, A.APRV_CN
+				, A.ATRZ_DMND_DT
+				, A.ATRZ_CMPTN_DT
+				, A.PRGRS_STTS_TY
+				, A.FILE_GROUP_NO
+			
+		 FROM  APPROVAL_DOCUMENT A
+		 JOIN EMPLOYEE B ON A.EMPL_ID = B.EMPL_ID 
+		 WHERE A.EMPL_ID = #{emplId}
+		 ORDER BY A.ATRZ_DMND_DT DESC
+	</select>
+	<!-- 결재할 문서 목록 조회 -->
+	<select id="aprvDocListCount" resultType="int">
+		SELECT	
+		    COUNT(*)
+		FROM  
+		    APPROVAL_DOCUMENT A
+		    JOIN EMPLOYEE B ON A.EMPL_ID = B.EMPL_ID
+		    JOIN APPROVAL_LINE C ON A.APRV_ID = C.APRV_ID 
+		WHERE 
+		    C.EMPL_ID = #{emplId}
+		    AND	C.APRV_STATUS = 'SEC00103'
+		    AND (A.PRGRS_STTS_TY = 'SEC00103' OR A.PRGRS_STTS_TY = 'SEC00102')
+	</select>
+	
+	
+	<!-- 대결문서 목록조회 -->
+	<select id="aprvProxyList" resultType="AprvDocumentVO">
+		SELECT	A.APRV_ID
+		        , A.FORM_CD
+		        , A.EMPL_ID
+		        , B.EMPL_NM
+		        , A.APRV_TTL
+		        , A.APRV_CN
+		        , A.ATRZ_DMND_DT
+		        , A.ATRZ_CMPTN_DT
+		        , A.PRGRS_STTS_TY
+		        , A.FILE_GROUP_NO
+		        , C.APRV_ORDER
+		        , C.APRV_STATUS
+		        , D.AGT_ID
+		 FROM  APPROVAL_DOCUMENT A
+		 INNER JOIN EMPLOYEE B ON A.EMPL_ID = B.EMPL_ID
+		 INNER JOIN APPROVAL_LINE C ON A.APRV_ID = C.APRV_ID 
+		 INNER JOIN PROXYS D ON (C.EMPL_ID = D.EMPL_ID)
+		 WHERE D.AGT_ID = #{agtId} AND D.USE_YN = 'Y'
+		 <![CDATA[
+	         AND TO_CHAR(SYSDATE, 'YYYY-MM-DD') >= TO_DATE(BGNG_YMD, 'YYYY-MM-DD')
+	         AND TO_CHAR(SYSDATE, 'YYYY-MM-DD') <= TO_DATE(END_YMD , 'YYYY-MM-DD')
+		 ]]>
+		 ORDER BY A.ATRZ_DMND_DT DESC
+	</select>
+	
+	
+	<!--참조된 문서 목록 조회 -->
+	<select id="rfrncList" resultType="AprvDocumentVO">
+		SELECT	A.APRV_ID
+				, A.FORM_CD
+				, A.EMPL_ID
+				, B.EMPL_NM
+				, A.APRV_TTL
+				, A.APRV_CN
+				, A.ATRZ_DMND_DT
+				, A.ATRZ_CMPTN_DT
+				, A.PRGRS_STTS_TY
+				, A.FILE_GROUP_NO
+			
+		 FROM  APPROVAL_DOCUMENT A
+		 INNER JOIN EMPLOYEE B ON A.EMPL_ID = B.EMPL_ID	
+		 INNER JOIN RFRNC C	ON A.APRV_ID = C.APRV_ID
+		WHERE C.EMPL_ID = #{emplId}
+		ORDER BY A.ATRZ_DMND_DT DESC
+	
+	</select>
+	
+	<!-- 대결자 등록 -->
+	<insert id="insertProxy">
+		INSERT INTO PROXYS(PROXY_NO, EMPL_ID, AGT_ID, BGNG_YMD, END_YMD,USE_YN)
+		VALUES(SEQ_PROXY_NO.NEXTVAL,#{emplId},#{agtId},#{bgngYmd},#{endYmd},'Y')
+	</insert>
+	
+	<!-- 대결기간 시작인 대결자 조회-->
+	<select id="proxyOne" resultType="aprvProxyVO">
+			SELECT
+		    P.AGT_ID
+		    , P.BGNG_YMD
+		    , P.END_YMD
+		    , P.USE_YN
+		    , E.EMPL_NM
+		    , E.ESGN
+		FROM PROXYS P
+		JOIN EMPLOYEE E ON P.AGT_ID = E.EMPL_ID
+		WHERE P.EMPL_ID = #{emplId}
+        AND P.BGNG_YMD >= TO_CHAR(sysdate,'YYYYMMDD')
+	</select>
+	
+	<!-- 종료일에 대결자 사용여부 'n'업데이트 -->
+	<update id="endproxy">
+		UPDATE PROXYS
+		SET USE_YN ='N'
+		WHERE END_YMD = TO_CHAR(SYSDATE,'YYYYMMDD')
+	</update>
+	
+	<!-- 직급 코드 -->
+	<sql id="positionCdSql">
+	    C.CM_CD_GROUP_ID LIKE '%POSITION%'
+	    <if test="positionCd != null">
+	        <![CDATA[
+	        AND 
+	            POSITION_CD >= #{positionCd}
+	        ]]>
+	    </if>
+	</sql>
+	
+	<!-- 사원목록 조회 -->
+	<select id="emplList" resultType="emplVo">
+	    SELECT  E.EMPL_NM
+	          , D.DEPT_NM AS DEPT_CD
+	          , C.CM_CD_NM AS POSITIONCDNM
+	          , E.POSITION_CD
+	          , E.EMPL_ID
+	    FROM 
+	        EMPLOYEE E
+	    JOIN 
+	        DEPARTMENT D ON E.DEPT_CD = D.DEPT_CD
+	    JOIN 
+	        COMMON_CODE C ON E.POSITION_CD = C.CM_CD
+	    WHERE 
+	    	1=1
+	    AND
+	       <include refid="positionCdSql"/>	    
+	    ORDER BY POSITION_CD DESC
+	</select>
+	
+	<!-- 새 기안 등록(결재문서) -->
+	<insert id="addAprvDoc">
+		<selectKey resultType="int" keyProperty="aprvId" order="BEFORE">
+	        SELECT SEQ_APRV_ID.NEXTVAL FROM DUAL
+	    </selectKey>
+    
+		INSERT INTO APPROVAL_DOCUMENT(APRV_ID, FORM_CD, EMPL_ID, APRV_TTL, APRV_CN, ATRZ_DMND_DT, PRGRS_STTS_TY
+	    <if test="fileGroupNo != null">
+	        , FILE_GROUP_NO
+	    </if>)
+	    VALUES(#{aprvId}, #{formCd}, #{emplId}, #{aprvTtl}, #{aprvCn}, sysdate, 'SEC00103'
+	    <if test="fileGroupNo != null">
+	        , #{fileGroupNo}
+	    </if>)
+	</insert>
+	
+	<!-- 참조자 등록 -->
+	<insert id="insertRfrnc">
+		INSERT INTO RFRNC (
+			RFRNC_NO,
+			APRV_ID,
+			EMPL_ID
+		) VALUES (
+			SEQ_RFRNC_NO.NEXTVAL,
+			#{aprvId},
+			#{emplId}
+		)	
+	</insert>
+	
+	<!-- 결재라인 등록 -->
+	<insert id="insertAprvLine">
+		INSERT INTO APPROVAL_LINE(APRV_LINE_NO, APRV_ID, EMPL_ID, APRV_ORDER, APRV_STATUS)
+		VALUES(SEQ_APRV_LINE_NO.NEXTVAL,#{aprvId}, #{emplId},#{aprvOrder},'SEC00103')
+	</insert>
+	
+	<!-- 파일 정보 조회 -->
+	<select id="getFile" resultType="AttachFileVO">
+		SELECT * FROM ATCH_FILE 
+		WHERE FILE_GROUP_NO = #{fileGroupNo}
+		AND FILE_DEL_YN = 'N'
+		ORDER BY FILE_NO ASC	
+	</select>
+	<!-- 결재할 문서 상세보기 -->
+	<select id="detailDoc" resultType="AprvDocumentVO">
+		SELECT A.APRV_ID
+		    , A.FORM_CD
+		    , A.EMPL_ID
+		    , B.EMPL_NM
+		    , C.DEPT_NM
+		    , A.APRV_TTL
+		    , A.APRV_CN
+		    , A.ATRZ_DMND_DT
+		    , A.ATRZ_CMPTN_DT
+		    , A.PRGRS_STTS_TY
+		    , A.FILE_GROUP_NO
+		FROM APPROVAL_DOCUMENT A
+		JOIN EMPLOYEE B ON A.EMPL_ID = B.EMPL_ID
+		JOIN DEPARTMENT C ON B.DEPT_CD = C.DEPT_CD
+		WHERE APRV_ID = #{aprvId}
+	</select>
+	
+	<!-- 결재할 문서 상세보기 결재라인 조회 -->
+	<select id="aprvLine" resultType="AprvLineVO">
+	    SELECT 
+		    A.APRV_LINE_NO,
+		    A.APRV_ID,
+		    A.EMPL_ID,
+		    P.AGT_ID,
+		    B.EMPL_NM,
+		    C.CM_CD_NM AS POSITIONCDNM,
+		    D.EMPL_NM AS AGT_NM,
+		    E.CM_CD_NM AS AGT_POSITION_NM,
+		    A.APRV_ORDER,
+		    A.APRV_STATUS,
+		    A.APRV_DT,
+		    A.APRV_OPNN,
+		    A.LAST_APRV,
+		    A.DCRB_YN,
+		    A.FINAL_APRV_YN,
+		    B.ESGN,
+		    LST.ESGN AS LAST_ESGN,
+		    LST.EMPL_NM AS LAST_EMPL_NM,
+		    STS.CM_CD_NM AS APRV_STATUS_NM,
+		    P.BGNG_YMD,
+		    P.END_YMD,
+		    P.USE_YN
+		FROM 
+		    APPROVAL_LINE A
+		JOIN 
+		    EMPLOYEE B ON A.EMPL_ID = B.EMPL_ID
+		JOIN 
+		    COMMON_CODE C ON B.POSITION_CD = C.CM_CD
+		LEFT JOIN 
+		    PROXYS P ON A.EMPL_ID = P.EMPL_ID
+		    <![CDATA[
+		    AND P.BGNG_YMD <= TO_CHAR(SYSDATE, 'YYYYMMDD')
+		    AND P.END_YMD >= TO_CHAR(SYSDATE, 'YYYYMMDD')
+		    ]]>
+		    AND P.USE_YN = 'Y'
+		LEFT JOIN 
+		    EMPLOYEE D ON P.AGT_ID = D.EMPL_ID
+		LEFT JOIN 
+		    COMMON_CODE E ON D.POSITION_CD = E.CM_CD
+		LEFT JOIN 
+		    EMPLOYEE LST ON A.LAST_APRV = LST.EMPL_ID
+		LEFT JOIN 
+		    COMMON_CODE STS ON A.APRV_STATUS = STS.CM_CD
+		WHERE 
+		    A.APRV_ID = #{aprvId}
+		ORDER BY 
+		    A.APRV_ORDER ASC
+	</select>
+	
+	
+	<select id="agtAprvLine" resultType="AprvLineVO">
+			SELECT 
+			    AD.APRV_ID, 
+			    FORM_CD, 
+			    APRV_LINE_NO, 
+			    AL.EMPL_ID,
+			    E.EMPL_NM,
+			    CC.CM_CD_NM AS POSITIONCDNM,
+			    (
+			        SELECT 
+			            P.AGT_ID
+			         FROM APPROVAL_DOCUMENT AD1 
+			         LEFT OUTER JOIN APPROVAL_LINE A1 ON AD1.APRV_ID = A1.APRV_ID
+			         LEFT OUTER JOIN PROXYS P ON A1.EMPL_ID = P.EMPL_ID
+			         WHERE AD1.APRV_ID = #{aprvId}
+			         <![CDATA[
+			         AND P.BGNG_YMD <= TO_CHAR(SYSDATE, 'YYYYMMDD')
+			         AND P.END_YMD >= TO_CHAR(SYSDATE, 'YYYYMMDD')
+			         ]]>
+			         AND P.USE_YN = 'Y'
+			         AND A1.EMPL_ID = AL.EMPL_ID
+			    ) AS AGT_ID,
+			    (
+			        SELECT 
+			            EMP.EMPL_NM
+			        FROM 
+			            EMPLOYEE EMP
+			        WHERE 
+			            EMP.EMPL_ID = (
+			                SELECT 
+			                    P.AGT_ID
+			                FROM 
+			                    PROXYS P
+			                WHERE 
+			                    P.EMPL_ID = AL.EMPL_ID
+			                <![CDATA[
+				                AND P.BGNG_YMD <= TO_CHAR(SYSDATE, 'YYYYMMDD')
+				                AND P.END_YMD >= TO_CHAR(SYSDATE, 'YYYYMMDD')
+				                AND P.USE_YN = 'Y'
+			                ]]>
+			            )
+			    ) AS AGT_NM,
+			    APRV_ORDER, 
+			    APRV_STATUS, 
+			    APRV_DT, 
+			    APRV_OPNN, 
+			    LAST_APRV, 
+			    DCRB_YN, 
+			    FINAL_APRV_YN,
+			    LST.ESGN AS LAST_ESGN,
+			    STS.CM_CD_NM AS APRV_STATUS_NM,
+			    LST.EMPL_NM AS LAST_EMPL_NM
+			FROM 
+			    APPROVAL_DOCUMENT AD 
+			LEFT OUTER JOIN 
+			    APPROVAL_LINE AL ON AD.APRV_ID = AL.APRV_ID
+			LEFT OUTER JOIN 
+			    EMPLOYEE E ON E.EMPL_ID = AL.EMPL_ID
+			LEFT OUTER JOIN 
+			    COMMON_CODE CC ON E.POSITION_CD = CC.CM_CD
+			LEFT OUTER JOIN 
+			    EMPLOYEE LST ON AL.LAST_APRV = LST.EMPL_ID
+			LEFT JOIN 
+		    COMMON_CODE STS ON AL.APRV_STATUS = STS.CM_CD
+			WHERE 
+			    AD.APRV_ID = #{aprvId}
+			ORDER BY 
+		    AL.APRV_ORDER ASC
+	</select>
+	
+	<select id="selectAgtName" resultType="aprvProxyVO">
+		SELECT
+		    P.AGT_ID
+		    , P.BGNG_YMD
+		    , P.END_YMD
+		    , P.USE_YN
+		    , E.EMPL_NM
+		    , E.ESGN
+		    , P.EMPL_ID
+		    , CC.CM_CD_NM AS POSITIONCDNM
+		    
+		FROM PROXYS P
+		JOIN EMPLOYEE E ON P.AGT_ID = E.EMPL_ID
+		LEFT OUTER JOIN COMMON_CODE CC ON E.POSITION_CD = CC.CM_CD
+		WHERE P.AGT_ID= #{emplId}
+        AND P.BGNG_YMD >= TO_CHAR(sysdate,'YYYYMMDD')
+	</select>
+   
+   	<!-- 프로젝트 기안 인서트 -->
+	<insert id="insertProjectFormData">
+		INSERT INTO PROJ_FORM_DATA (
+			   PROJ_NM
+	         , PROJ_DDLN_YMD
+	         , PROJ_CRT_YMD
+	         , APRV_ID
+		) VALUES (
+			   #{projNm}
+	         , REPLACE(#{projDdlnYmd}, '-', '')
+	         , REPLACE(#{projCrtYmd}, '-', '')
+	         , #{aprvId}
+		)
+	</insert>
+	
+	<insert id="insertProjFormPrtcp">
+		INSERT INTO PROJ_FORM_PRTCP(
+			EMPL_ID, AUTH, APRV_ID
+		) VALUES(
+			#{emplId}, #{auth}, #{aprvId}
+		)
+		
+	</insert>
+	
+	<select id="detailProj" resultType="aprvProjectVO">
+		SELECT PROJ_NM
+				,PROJ_EXPLN
+				,PROJ_DDLN_YMD
+				,PROJ_CRT_YMD
+				,APRV_ID
+		 FROM PROJ_FORM_DATA
+		 WHERE APRV_ID = #{aprvId}
+	</select>
+	
+	<insert id="insertDeptMvnvFormData">
+		<selectKey resultType="int" keyProperty="deptDataNo" order="BEFORE">
+	        SELECT SEQ_DEPT_DATA_NO.NEXTVAL FROM DUAL
+	    </selectKey>
+		INSERT INTO DEPT_MVNV_FORM_DATA( 
+				DEPT_DATA_NO
+				, EMPL_ID
+				, DEPT_CD
+				, AFTER_DEPT_CD
+				, APRV_ID
+		) VALUES (
+			#{deptDataNo}
+			, #{emplId}
+			, #{deptCd}
+			, #{afterDeptCd}
+			, #{aprvId}
+		)
+	</insert>
+	
+	<select id="detailDept" resultType="aprvDeptVO">
+		SELECT A.DEPT_DATA_NO
+		     , A.FORM_CD
+		     , A.EMPL_ID
+		     , B.EMPL_NM
+		     , CC.CM_CD_NM AS POSITION_CD_NM
+		     , D1.DEPT_NM AS DEPT_NM
+		     , D2.DEPT_NM AS AFTER_DEPT_NM
+		     , A.APRV_ID
+		FROM DEPT_MVNV_FORM_DATA A
+		JOIN EMPLOYEE B ON A.EMPL_ID = B.EMPL_ID
+		LEFT JOIN COMMON_CODE CC ON CC.CM_CD = B.POSITION_CD
+		LEFT JOIN DEPARTMENT D1 ON D1.DEPT_CD = A.DEPT_CD
+		LEFT JOIN DEPARTMENT D2 ON D2.DEPT_CD = A.AFTER_DEPT_CD
+		WHERE A.APRV_ID = #{aprvId}
+	</select>
+	
+	
+	<insert id="insertHdAplyFormData">
+		INSERT INTO HD_APLY_FORM_DATA (
+		        FORM_SE_NO
+		        , EMPL_ID
+		        , HD_CTR_DT
+		        , HD_BGNG_HR
+		        , HD_END_HR
+		        , HD_RESON
+		        , APRV_ID
+		        
+		) VALUES (#{formSeNo}, #{emplId}, sysdate, to_date(#{hdBgngHr}, 'YYYY-MM-DD HH24:MI:SS'),to_date(#{hdEndHr}, 'YYYY-MM-DD HH24:MI:SS'),#{hdReson}, #{aprvId})
+	</insert>
+	
+	<select id="detailVac" resultType="AprvVacVO">
+		SELECT A.FORM_SE_NO
+		        , B.FORM_HDF_SE
+		        , A.EMPL_ID
+		        , A.HD_CTR_DT
+		        , A.HD_BGNG_HR
+		        , A.HD_END_HR
+		        , A.HD_RESON
+		        , A.APRV_ID
+		FROM HD_APLY_FORM_DATA A
+		JOIN FORM_HD_SE B ON(A.FORM_SE_NO = B.FORM_SE_NO)
+		WHERE A.APRV_ID = #{aprvId}
+	</select>
+	
+	<update id="saveAprvLine">
+		UPDATE APPROVAL_LINE
+		   SET APRV_STATUS = #{aprvStatus}
+		   	 , APRV_OPNN = #{aprvOpnn}
+		   	 , LAST_APRV = #{lastAprv}
+		   	 , APRV_DT = SYSDATE
+		 WHERE APRV_LINE_NO = #{aprvLineNo}
+	</update>
+	
+	
+	<update id="updateAprvDocStts">
+		UPDATE APPROVAL_DOCUMENT
+		   SET PRGRS_STTS_TY = #{aprvStatus}
+		   <if test='cmptnYn == "Y"'>
+		   	 , ATRZ_CMPTN_DT = SYSDATE
+		   </if>
+		 WHERE APRV_ID = #{aprvId}
+	</update>
+	
+	<insert id="insertProjectData">
+		<selectKey resultType="int" keyProperty="projNo" order="BEFORE">
+	        SELECT SEQ_PROJ_NO.NEXTVAL FROM DUAL
+	    </selectKey>
+		INSERT INTO PROJECTS (
+			   PROJ_NO
+             , PROJ_NAME
+             , PROJ_CRT_YMD
+             , PROJ_DDLN_YMD
+             , PROJ_EXPLN
+             , PROJ_PROG_PER
+             , PROJ_DEL_YN
+		)
+		SELECT #{projNo}
+			 , B.PROJ_NM
+			 , TO_CHAR(SYSDATE, 'YYYYMMDD')
+			 , B.PROJ_DDLN_YMD
+			 , A.APRV_CN
+			 , 0
+			 , 'N'
+		  FROM APPROVAL_DOCUMENT A
+		 INNER JOIN PROJ_FORM_DATA B ON A.APRV_ID = B.APRV_ID 
+		 WHERE A.APRV_ID = #{aprvId}
+	</insert>
+	<insert id="insertProjectPrtcp">
+	    INSERT INTO PROJECT_PRTCP (
+	           PROJ_NO, EMPL_ID, PROJ_MNGR_YN, PROJ_JOIN_YN
+	    )
+	    SELECT #{projNo}
+	         , B.EMPL_ID
+	         , B.AUTH
+	         , 'Y'
+	      FROM APPROVAL_DOCUMENT A
+	     INNER JOIN PROJ_FORM_PRTCP B ON A.APRV_ID = B.APRV_ID 
+	     WHERE A.APRV_ID = #{aprvId}
+	</insert>
+	
+	
+	<update id="updateDeptMvnv">
+		UPDATE EMPLOYEE
+		SET DEPT_CD = (SELECT AFTER_DEPT_CD FROM DEPT_MVNV_FORM_DATA WHERE APRV_ID = #{aprvId})
+		WHERE EMPL_ID = (SELECT EMPL_ID FROM DEPT_MVNV_FORM_DATA WHERE APRV_ID = #{aprvId})
+	</update>
+	
+	<select id="getEmplInfo" resultType="emplVO">
+		SELECT A.*
+			 , (SELECT CM_CD_NM FROM COMMON_CODE WHERE CM_CD = A.POSITION_CD) AS POSITION_CD_NM
+			 , (SELECT DEPT_NM FROM DEPARTMENT WHERE DEPT_CD = A.DEPT_CD) AS DEPT_NM
+		  FROM EMPLOYEE A
+		 WHERE EMPL_ID = #{emplId}
+	</select>
+	
+	<select id="deptList" resultType="deptVO">
+		SELECT DEPT_CD, DEPT_NM, DEPT_UPPER_CD, DPRLR_NM, DEPT_TELNO, DEPT_TY_ST
+		FROM DEPARTMENT
+		WHERE DEPT_TY_ST = 'Y'
+	</select>
+	
+	<select id="selectCountDay" resultType="AprvVacVO">
+		SELECT 
+		    a.FORM_SE_NO ,
+		    a.EMPL_ID,
+		    b.FORM_HDF_SE,
+		    a.HD_CTR_DT,
+		    a.HD_BGNG_HR,
+		    a.HD_END_HR,
+		    a.HD_RESON,
+		    a.APRV_ID,
+		    WORKING_DAYS,
+		    CASE 
+		        WHEN a.FORM_SE_NO = 1 THEN WORKING_DAYS
+		        WHEN a.FORM_SE_NO IN (2, 3) THEN WORKING_DAYS * 0.5
+		        ELSE 0
+		    END AS DEDUCTED_DAYS
+		FROM 
+		    (SELECT 
+		        a.*,
+		        TRUNC(a.HD_END_HR) - TRUNC(a.HD_BGNG_HR) + 1 
+		        - (TRUNC(a.HD_END_HR, 'IW') - TRUNC(a.HD_BGNG_HR, 'IW')) / 7 * 2 
+		        - CASE WHEN TO_CHAR(a.HD_BGNG_HR, 'D') = '7' THEN 1 ELSE 0 END
+		        - CASE WHEN TO_CHAR(a.HD_END_HR, 'D') = '1' THEN 1 ELSE 0 END AS WORKING_DAYS
+		    FROM HD_APLY_FORM_DATA a) a
+		JOIN 
+		    FORM_HD_SE b ON a.FORM_SE_NO = b.FORM_SE_NO
+		WHERE A.APRV_ID = #{aprvId}
+	</select>
+	
+	<insert id="insertHdHistory">
+		INSERT INTO HD_HISTORY(HD_NO, EMPL_ID, APRV_ID, APLY_DT, HD_BGNG_HR, HD_END_HR, HD_CD, HD_CNT, HD_RESON, LEFT_CNT)
+	    VALUES(
+	        SEQ_HD_NO.NEXTVAL
+	    , #{emplId}
+	    , #{aprvId}
+	    , sysdate
+		, to_date(#{hdBgngHr}, 'YYYY-MM-DD HH24:MI:SS')
+		, to_date(#{hdEndHr}, 'YYYY-MM-DD HH24:MI:SS')
+	    , #{hdCd}
+	    , #{hdCnt}
+	    , #{hdReson}
+	    , #{leftCnt}
+	    )
+	</insert>
+	
+	<update id="updateEmployeeHoliday">
+	    UPDATE EMPLOYEE_HOLIDAY
+	    SET USE_CNT = USE_CNT + #{hdCnt},
+	        LEFT_CNT = LEFT_CNT - #{hdCnt}
+	    WHERE EMPL_ID = #{emplId}
+	</update>
+	
+	<select id="selectEmployeeHoliday" resultType="EmployeeHolidayVO">
+		SELECT BIRTH_NO, EMPL_ID, HD_SE_NO, TOTAL, USE_CNT, LEFT_CNT, OCRN_YR
+		FROM EMPLOYEE_HOLIDAY
+		WHERE EMPL_ID = #{emplId}
+	</select>
+	
+	<sql id="aprvSearch">
+		<if test="searchFlag != null and searchFlag == 'search'">
+			<if test="atrzDmndDt1 != null and atrzDmndDt2 != null">
+				AND (AD.ATRZ_DMND_DT IS NULL OR TO_CHAR(AD.ATRZ_DMND_DT, 'YYYY-MM-DD') BETWEEN TO_DATE(#{atrzDmndDt1}, 'YYYY-MM-DD') AND TO_DATE(#{atrzDmndDt2}, 'YYYY-MM-DD'))
+			</if>
+			<if test="atrzCmptnDt1 != null and atrzCmptnDt2 != null">
+				AND (AD.ATRZ_CMPTN_DT IS NULL OR TO_CHAR(AD.ATRZ_CMPTN_DT, 'YYYY-MM-DD') BETWEEN TO_DATE(#{atrzCmptnDt1}, 'YYYY-MM-DD') AND TO_DATE(#{atrzCmptnDt2}, 'YYYY-MM-DD'))
+			</if>
+			<if test="emplNm != null and emplNm != ''">
+				AND  E.EMPL_NM = #{emplNm}
+			</if>
+			<if test="deptNm != null and deptNm != ''">
+				AND  D.DEPT_NM LIKE '%' || #{deptNm} || '%'
+			</if>
+			<if test="lastAprv != null and lastAprv != ''">
+				AND AD.PRGRS_STTS_TY != 'SEC00103'
+        		AND AL.APRV_STATUS != 'SEC00103'
+				AND LAST_APRV = #{lastAprv}
+			</if>
+			<if test="aprvTtl != null and aprvTtl != ''">
+				AND AD.APRV_TTL LIKE '%' || #{aprvTtl} || '%'
+			</if>
+			<if test="prgrsSttsTy != null and prgrsSttsTy != ''">
+				AND AD.PRGRS_STTS_TY = #{prgrsSttsTy}
+			</if>
+			<if test="aprvStatus != null and aprvStatus != ''">
+				AND AL.APRV_STATUS = #{aprvStatus} 
+			</if>
+		</if>
+	</sql>
+	
+	<select id="selectSearchList" parameterType="AprvSearchVO" resultType="AprvSearchVO">
+		SELECT 
+		    AD.APRV_ID,
+		    TO_CHAR(AD.ATRZ_DMND_DT, 'YYYY-MM-DD') AS ATRZ_DMND_DT, 
+		    TO_CHAR(AD.ATRZ_CMPTN_DT, 'YYYY-MM-DD') AS ATRZ_CMPTN_DT, 
+		    (
+		        SELECT EY.EMPL_NM FROM EMPLOYEE EY WHERE EY.EMPL_ID = E.EMPL_ID
+		    ) AS EMPL_NM,
+		    (   
+		        CASE 
+		            WHEN AL.APRV_STATUS = 'SEC00201' THEN AL.LAST_APRV
+		            WHEN AL.APRV_STATUS = 'SEC00202' THEN AL.LAST_APRV
+		            WHEN AL.APRV_STATUS = 'SEC00103' THEN AL.EMPL_ID
+		        END
+		    ) AS LAST_APRV,
+		    AL.APRV_ORDER,
+		    (
+		        CASE 
+		            WHEN AL.APRV_STATUS = 'SEC00201' THEN '반려'
+		            WHEN AL.APRV_STATUS = 'SEC00202' THEN '승인'
+		            WHEN AL.APRV_STATUS = 'SEC00103' THEN '대기'
+		        END
+		    ) AS APRV_STATUS,
+		    D.DEPT_NM,   
+		    AD.APRV_TTL,
+		    (
+		        CASE 
+		            WHEN AD.PRGRS_STTS_TY = 'SEC00101' THEN '완료'
+		            WHEN AD.PRGRS_STTS_TY = 'SEC00102' THEN '진행'
+		            WHEN AD.PRGRS_STTS_TY = 'SEC00103' THEN '대기'
+		            ELSE AD.PRGRS_STTS_TY
+		        END 
+		    ) AS PRGRS_STTS_TY
+		FROM APPROVAL_DOCUMENT AD INNER JOIN EMPLOYEE E ON (AD.EMPL_ID = E.EMPL_ID)
+		                          INNER JOIN DEPARTMENT D ON (E.DEPT_CD = D.DEPT_CD)
+		                          LEFT OUTER JOIN APPROVAL_LINE AL ON(AD.APRV_ID = AL.APRV_ID)
+		WHERE 1=1
+		<include refid="aprvSearch"/>
+		ORDER BY 1 DESC, 6 DESC
+	</select>
+	
+	<select id="getlineTemplate" resultType="AprvLineTempVO">
+		SELECT ALT.TEMPLT_CD, ALT.EMPL_ID, E.EMPL_NM, ALT.APRV_ORDER, ALT.GROUP_NO, ALT.LINE_EMPL_ID, LE.EMPL_NM AS LINE_EMPL_NM
+				,CC.CM_CD_NM AS POSITION_NM, D.DEPT_NM
+		FROM APPROVAL_LINE_TEMPLATE ALT
+		INNER JOIN EMPLOYEE E ON E.EMPL_ID = ALT.EMPL_ID
+		INNER JOIN EMPLOYEE LE ON LE.EMPL_ID = ALT.LINE_EMPL_ID
+		INNER JOIN DEPARTMENT D ON LE.DEPT_CD = D.DEPT_CD
+		INNER JOIN COMMON_CODE CC ON LE.POSITION_CD = CC.CM_CD
+		WHERE ALT.EMPL_ID = #{emplId}
+	</select>
+	
+	<select id="getNewGroupNo" resultType="int">
+	    SELECT NVL(MAX(GROUP_NO), 0) FROM APPROVAL_LINE_TEMPLATE
+	</select>
+	
+	<insert id="insertLineTemp" parameterType="AprvLineTempVO">
+	    INSERT INTO APPROVAL_LINE_TEMPLATE (TEMPLT_CD, EMPL_ID, APRV_ORDER, GROUP_NO, LINE_EMPL_ID)
+	    VALUES (SEQ_APRV_TEMP_CD.NEXTVAL, #{emplId}, #{aprvOrder}, #{groupNo}, #{lineEmplId})
+	</insert>
+	
+	<delete id="deleteLineTemplates">
+		DELETE FROM APPROVAL_LINE_TEMPLATE
+		WHERE GROUP_NO=#{groupNo}
+	</delete>
+	
+</mapper>

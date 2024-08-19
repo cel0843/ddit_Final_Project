@@ -1,0 +1,1092 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.mapper.IMailMapper">
+
+    <select id="sendList" resultType="mscVO" parameterType="string">
+SELECT 
+    e.eml_no, 
+    e.empl_id, 
+    e.eml_ttl, 
+    e.eml_cn, 
+    CASE
+        WHEN TRUNC(e.EML_DT) = TRUNC(SYSDATE) THEN TO_CHAR(e.EML_DT, 'HH24:MI:SS')
+        ELSE TO_CHAR(e.EML_DT, 'YYYY-MM-DD')
+    END AS EML_DT, 
+    e.eml_drf_yn, 
+    e.msc_code, 
+    e.file_group_no,
+    emp.EMPL_NM 
+FROM 
+    email_send e
+JOIN 
+    EMPLOYEE emp ON e.EMPL_ID = emp.EMPL_ID 
+WHERE 
+    e.empl_id = #{emplId}
+    AND e.eml_drf_yn = 'N'
+ORDER BY 
+    EML_DT ASC
+
+    </select>
+
+  <select id="reList" resultType="mscVO" parameterType="map">
+    <![CDATA[
+        SELECT * FROM (
+            SELECT a.*, ROWNUM rnum FROM (
+                SELECT 
+                    e.EML_NO, 
+                    e.EMPL_ID AS sendId, 
+                    e.EML_TTL, 
+                    e.EML_CN, 
+                    CASE
+                        WHEN TRUNC(e.EML_DT) = TRUNC(SYSDATE) THEN TO_CHAR(e.EML_DT, 'HH24:MI:SS')
+                        ELSE TO_CHAR(e.EML_DT, 'YYYY-MM-DD')
+                    END AS EML_DT, 
+                    e.EML_DRF_YN, 
+                    e.MSC_CODE AS EMAIL_SEND_MSC_CODE, 
+                    e.FILE_GROUP_NO, 
+                    r.MRE_NO, 
+                    r.EMPL_ID AS emplId, 
+                    r.EML_NO, 
+                    r.MRE_YN AS mreYn, 
+                    r.MSC_CODE AS MAIL_RE_MSC_CODE,
+                    emp.EMPL_NM AS emplNm
+                FROM 
+                    EMAIL_SEND e
+                JOIN 
+                    MAIL_RE r ON e.EML_NO = r.EML_NO
+                JOIN 
+                    EMPLOYEE emp ON e.EMPL_ID = emp.EMPL_ID 
+                WHERE 
+                    r.MSC_CODE = 'MSC001'
+                    AND r.EMPL_ID = #{emplId}
+                ORDER BY 
+                    e.EML_DT DESC
+            ) a 
+            WHERE ROWNUM <= #{endRow}
+        ) 
+        WHERE rnum >= #{startRow}
+    ]]>
+    </select>
+
+    <select id="impoList" resultType="mscVO" parameterType="string">
+        SELECT e.EML_NO, e.EMPL_ID AS sendId, e.EML_TTL, e.EML_CN, 
+               CASE
+                   WHEN TRUNC(e.EML_DT) = TRUNC(SYSDATE) THEN TO_CHAR(e.EML_DT, 'HH24:MI:SS')
+                   ELSE TO_CHAR(e.EML_DT, 'YYYY-MM-DD')
+               END AS EML_DT, e.EML_DRF_YN, e.MSC_CODE AS EMAIL_SEND_MSC_CODE, e.FILE_GROUP_NO, 
+               r.MRE_NO, r.EMPL_ID AS emplId, r.EML_NO, r.MRE_YN, r.MSC_CODE AS MAIL_RE_MSC_CODE
+               ,emp.EMPL_NM AS emplNm
+        FROM EMAIL_SEND e
+        JOIN MAIL_RE r ON e.EML_NO = r.EML_NO
+        JOIN 
+   		EMPLOYEE emp ON e.EMPL_ID = emp.EMPL_ID 
+        WHERE r.MSC_CODE = 'MSC004'
+        AND r.EMPL_ID = #{emplId}
+        ORDER BY e.EML_DT DESC
+    </select>
+
+    <select id="drfList" resultType="mscVO" parameterType="string">
+        select eml_no, empl_id, eml_ttl, eml_cn, 
+               CASE
+                   WHEN TRUNC(EML_DT) = TRUNC(SYSDATE) THEN TO_CHAR(EML_DT, 'HH24:MI:SS')
+                   ELSE TO_CHAR(EML_DT, 'YYYY-MM-DD')
+               END AS EML_DT, eml_drf_yn, msc_code, file_group_no
+        from email_send
+        
+        where eml_drf_yn = 'Y'
+        and empl_id = #{emplId}
+        ORDER BY EML_DT ASC
+    </select>
+
+    <select id="trashList" resultType="mscVO" parameterType="string">
+        SELECT e.EML_NO, e.EMPL_ID AS sendId, e.EML_TTL, e.EML_CN, 
+               CASE
+                   WHEN TRUNC(e.EML_DT) = TRUNC(SYSDATE) THEN TO_CHAR(e.EML_DT, 'HH24:MI:SS')
+                   ELSE TO_CHAR(e.EML_DT, 'YYYY-MM-DD')
+               END AS EML_DT, e.EML_DRF_YN, e.MSC_CODE AS EMAIL_SEND_MSC_CODE, e.FILE_GROUP_NO, 
+               r.MRE_NO, r.EMPL_ID AS emplId, r.EML_NO, r.MRE_YN, r.MSC_CODE AS MAIL_RE_MSC_CODE
+               ,emp.EMPL_NM AS emplNm
+        FROM EMAIL_SEND e
+        JOIN MAIL_RE r ON e.EML_NO = r.EML_NO
+        JOIN 
+   		EMPLOYEE emp ON e.EMPL_ID = emp.EMPL_ID 
+        WHERE r.MSC_CODE = 'MSC002' 
+        AND r.EMPL_ID = #{emplId}
+        OR e.MSC_CODE = 'MSC002'
+        ORDER BY e.EML_DT DESC
+    </select>
+
+    <select id="mineList" resultType="mscVO" parameterType="string">
+        SELECT e.EML_NO, e.EMPL_ID AS sendId, e.EML_TTL, e.EML_CN, 
+               CASE
+                   WHEN TRUNC(e.EML_DT) = TRUNC(SYSDATE) THEN TO_CHAR(e.EML_DT, 'HH24:MI:SS')
+                   ELSE TO_CHAR(e.EML_DT, 'YYYY-MM-DD')
+               END AS EML_DT, e.EML_DRF_YN, e.MSC_CODE AS EMAIL_SEND_MSC_CODE, e.FILE_GROUP_NO, 
+               r.MRE_NO, r.EMPL_ID AS emplId, r.EML_NO, r.MRE_YN, r.MSC_CODE AS MAIL_RE_MSC_CODE
+               ,emp.EMPL_NM AS emplNm
+        FROM EMAIL_SEND e
+        JOIN MAIL_RE r ON e.EML_NO = r.EML_NO
+        JOIN 
+   		EMPLOYEE emp ON e.EMPL_ID = emp.EMPL_ID 
+        WHERE r.MSC_CODE = 'MSC003'
+        AND r.EMPL_ID = #{emplId}
+        ORDER BY e.EML_DT DESC
+    </select>
+
+    <select id="getNextFileGroupNo" resultType="int">
+        SELECT SEQ_FILE_GROUP_NO.NEXTVAL FROM DUAL
+    </select>
+
+    <insert id="insertAttachFile" parameterType="customFileVO">
+        INSERT INTO ATCH_FILE (FILE_GROUP_NO, FILE_NO, FILE_PATH, FILE_STRG_NM, FILE_ORGNL_NM, FILE_SZ, 
+                               FILE_FANCYSIZE, FILE_CTR_DT, FILE_TYPE, FILE_DEL_YN)
+        VALUES (#{fileGroupNo}, #{fileNo}, #{filePath}, #{fileStrgNm}, #{fileOrgnlNm}, #{fileSz}, 
+                #{fileFancysize}, #{fileCtrDt}, #{fileType}, #{fileDelyn})
+    </insert>
+
+    <select id="emplList" resultType="emplVO">
+        <![CDATA[
+        SELECT e.empl_nm, d.dept_nm AS dept_cd, c.cm_cd_nm AS position_cd, e.email, e.telno, e.empl_id
+        FROM employee e
+        JOIN department d ON e.dept_cd = d.dept_cd
+        JOIN common_code c ON e.position_cd = c.cm_cd
+        WHERE c.cm_cd_group_id LIKE '%POSITION%'
+        ]]>
+    </select>
+
+<insert id="insertEmailSend" parameterType="mscVO">
+    <selectKey keyProperty="emlNo" resultType="int" order="BEFORE">
+        SELECT SEQ_EML_NO.NEXTVAL FROM DUAL
+    </selectKey>
+    INSERT INTO EMAIL_SEND (
+        EML_NO, EMPL_ID, EML_TTL, EML_CN, EML_DT, EML_DRF_YN, MSC_CODE, FILE_GROUP_NO
+    ) VALUES (
+        #{emlNo}, #{emplId}, #{emlTtl}, #{emlCn}, TO_DATE(#{emlDt}, 'yyyy-MM-dd HH24:mi:ss'), #{emlDrfYn}, #{mscCode},
+        <if test="fileGroupNo != null and fileGroupNo != 0 ">
+        #{fileGroupNo}
+        </if>
+        <if test="fileGroupNo == null ">
+		null
+        </if>
+    )
+    
+</insert>
+
+
+    <insert id="insertMailRe" parameterType="mreVO">
+        <selectKey keyProperty="mreNo" resultType="int" order="BEFORE">
+            SELECT SEQ_MRE_NO.NEXTVAL FROM DUAL
+        </selectKey>
+        INSERT INTO MAIL_RE (MRE_NO, EMPL_ID, EML_NO, MRE_YN, MSC_CODE)
+        VALUES (#{mreNo}, #{emplId}, #{emlNo}, #{mreYn}, #{mscCode})
+    </insert>
+
+
+
+
+    <update id="updateMscCode">
+        UPDATE MAIL_RE
+        SET MSC_CODE = #{mscCode}
+        WHERE MRE_NO = #{mreNo}
+    </update>
+
+    <select id="getMailDetail" parameterType="int" resultType="mscVO">
+        SELECT e.EML_NO, e.EMPL_ID AS sendId, e.EML_TTL, e.EML_CN, 
+               CASE
+                   WHEN TRUNC(e.EML_DT) = TRUNC(SYSDATE) THEN TO_CHAR(e.EML_DT, 'HH24:MI:SS')
+                   ELSE TO_CHAR(e.EML_DT, 'YYYY-MM-DD')
+               END AS EML_DT, e.EML_DRF_YN, e.MSC_CODE AS EMAIL_SEND_MSC_CODE, e.FILE_GROUP_NO, 
+               r.MRE_NO, r.EMPL_ID AS emplId, r.EML_NO, r.MRE_YN, r.MSC_CODE AS MAIL_RE_MSC_CODE
+        FROM EMAIL_SEND e
+        JOIN MAIL_RE r ON e.EML_NO = r.EML_NO
+        WHERE r.MRE_NO = #{mreNo}
+    </select>
+
+    <select id="getsendDetail" parameterType="int" resultType="mscVO">
+        select eml_no, empl_id, eml_ttl, eml_cn, eml_dt, msc_code, file_group_no
+        from email_send
+        where eml_no = #{emlNo}
+    </select>
+
+    <select id="reCount" resultType="int" parameterType="string">
+        select count(*)
+        from mail_re
+        where msc_code = 'MSC001' and MRE_YN= 'N'and empl_id =#{emplId}
+    </select>
+    
+    <select id="cntReList" resultType="int" parameterType="string">
+        select count(*)
+        from mail_re
+        where msc_code = 'MSC001' and empl_id =#{emplId}
+    </select>
+
+    <select id="getFilesByGroupNo" parameterType="int" resultType="customFileVO">
+        SELECT file_group_no, file_no, file_path, file_strg_nm, file_orgnl_nm, file_sz, file_fancysize, file_ctr_dt, file_type, file_del_yn
+        FROM ATCH_FILE
+        WHERE FILE_GROUP_NO = #{fileGroupNo}
+    </select>
+
+ <select id="getFile" parameterType="map" resultType="customFileVO">
+    SELECT file_group_no, file_no, file_path, file_strg_nm, file_orgnl_nm, file_sz, file_fancysize, file_ctr_dt, file_type, file_del_yn
+    FROM ATCH_FILE
+    WHERE file_group_no = #{fileGroupNo} AND file_no = #{fileNo}
+</select>
+    
+    <select id="groupSearch" resultType="int">
+    select max(file_group_no)
+	from atch_file
+   	</select>
+   	
+   	
+<delete id="deleteMailPermanently" parameterType="int">
+    DELETE FROM MAIL_RE
+    WHERE MRE_NO = #{mreNo}
+</delete>
+
+<update id="readCheck" parameterType="int">
+		update mail_re 
+        set mre_yn = 'Y'
+        where mre_no =#{mreNo} 
+</update>
+
+<delete id="deleteDraft" parameterType="int">
+    DELETE FROM EMAIL_SEND WHERE EML_NO = #{emlNo}
+</delete>
+
+  <select id="selectReListPaged" resultType="mscVO" parameterType="map">
+    <![CDATA[
+    SELECT * FROM (
+        SELECT a.*, ROWNUM rnum FROM (
+            SELECT 
+                e.EML_NO AS EML_NO, 
+                e.EMPL_ID AS SEND_ID, 
+                e.EML_TTL AS EML_TTL, 
+                e.EML_CN AS EML_CN, 
+                CASE
+                    WHEN TRUNC(e.EML_DT) = TRUNC(SYSDATE) THEN TO_CHAR(e.EML_DT, 'HH24:MI:SS')
+                    ELSE TO_CHAR(e.EML_DT, 'YYYY-MM-DD')
+                END AS EML_DT, 
+                e.EML_DRF_YN AS EML_DRF_YN, 
+                e.MSC_CODE AS EMAIL_SEND_MSC_CODE, 
+                e.FILE_GROUP_NO AS FILE_GROUP_NO, 
+                r.MRE_NO AS MRE_NO, 
+                r.EMPL_ID AS EMPL_ID, 
+                r.EML_NO AS RE_EML_NO, 
+                r.MRE_YN AS MRE_YN, 
+                r.MSC_CODE AS MAIL_RE_MSC_CODE,
+                emp.EMPL_NM AS EMPL_NM
+            FROM 
+                EMAIL_SEND e
+            JOIN 
+                MAIL_RE r ON e.EML_NO = r.EML_NO
+            JOIN 
+                EMPLOYEE emp ON e.EMPL_ID = emp.EMPL_ID 
+            WHERE 
+                r.MSC_CODE = 'MSC001'
+                AND r.EMPL_ID = #{emplId}
+            ORDER BY 
+                e.EML_DT DESC
+        ) a 
+        WHERE ROWNUM <= #{endRow}
+    ) 
+    WHERE rnum >= #{startRow}
+    ]]>
+</select>
+
+
+<select id="selectImpoListPaged" resultType="mscVO" parameterType="map">
+    <![CDATA[
+    SELECT * FROM (
+        SELECT a.*, ROWNUM rnum FROM (
+            SELECT 
+                e.EML_NO AS EML_NO, 
+                e.EMPL_ID AS SEND_ID, 
+                e.EML_TTL AS EML_TTL, 
+                e.EML_CN AS EML_CN, 
+                CASE
+                    WHEN TRUNC(e.EML_DT) = TRUNC(SYSDATE) THEN TO_CHAR(e.EML_DT, 'HH24:MI:SS')
+                    ELSE TO_CHAR(e.EML_DT, 'YYYY-MM-DD')
+                END AS EML_DT, 
+                e.EML_DRF_YN AS EML_DRF_YN, 
+                e.MSC_CODE AS EMAIL_SEND_MSC_CODE, 
+                e.FILE_GROUP_NO AS FILE_GROUP_NO, 
+                r.MRE_NO AS MRE_NO, 
+                r.EMPL_ID AS EMPL_ID, 
+                r.EML_NO AS RE_EML_NO, 
+                r.MRE_YN AS MRE_YN, 
+                r.MSC_CODE AS MAIL_RE_MSC_CODE,
+                emp.EMPL_NM AS EMPL_NM
+            FROM 
+                EMAIL_SEND e
+            JOIN 
+                MAIL_RE r ON e.EML_NO = r.EML_NO
+            JOIN 
+                EMPLOYEE emp ON e.EMPL_ID = emp.EMPL_ID 
+            WHERE 
+                r.MSC_CODE = 'MSC004'
+                AND r.EMPL_ID = #{emplId}
+            ORDER BY 
+                e.EML_DT DESC
+        ) a 
+        WHERE ROWNUM <= #{endRow}
+    ) 
+    WHERE rnum >= #{startRow}
+    ]]>
+</select>
+
+<select id="cntImpoList" resultType="int" parameterType="string">
+    SELECT COUNT(*)
+    FROM MAIL_RE
+    WHERE MSC_CODE = 'MSC004' AND EMPL_ID = #{emplId}
+</select>
+
+
+<select id="selectMineListPaged" resultType="mscVO" parameterType="map">
+    <![CDATA[
+    SELECT * FROM (
+        SELECT a.*, ROWNUM rnum FROM (
+            SELECT 
+                e.EML_NO AS EML_NO, 
+                e.EMPL_ID AS SEND_ID, 
+                e.EML_TTL AS EML_TTL, 
+                e.EML_CN AS EML_CN, 
+                CASE
+                    WHEN TRUNC(e.EML_DT) = TRUNC(SYSDATE) THEN TO_CHAR(e.EML_DT, 'HH24:MI:SS')
+                    ELSE TO_CHAR(e.EML_DT, 'YYYY-MM-DD')
+                END AS EML_DT, 
+                e.EML_DRF_YN AS EML_DRF_YN, 
+                e.MSC_CODE AS EMAIL_SEND_MSC_CODE, 
+                e.FILE_GROUP_NO AS FILE_GROUP_NO, 
+                r.MRE_NO AS MRE_NO, 
+                r.EMPL_ID AS EMPL_ID, 
+                r.EML_NO AS RE_EML_NO, 
+                r.MRE_YN AS MRE_YN, 
+                r.MSC_CODE AS MAIL_RE_MSC_CODE,
+                emp.EMPL_NM AS EMPL_NM
+            FROM 
+                EMAIL_SEND e
+            JOIN 
+                MAIL_RE r ON e.EML_NO = r.EML_NO
+            JOIN 
+                EMPLOYEE emp ON e.EMPL_ID = emp.EMPL_ID 
+            WHERE 
+                r.MSC_CODE = 'MSC003'
+                AND r.EMPL_ID = #{emplId}
+            ORDER BY 
+                e.EML_DT DESC
+        ) a 
+        WHERE ROWNUM <= #{endRow}
+    ) 
+    WHERE rnum >= #{startRow}
+    ]]>
+</select>
+
+<select id="cntMineList" resultType="int" parameterType="string">
+    SELECT COUNT(*)
+    FROM MAIL_RE
+    WHERE MSC_CODE = 'MSC003' AND EMPL_ID = #{emplId}
+</select>
+
+<!-- 
+            SELECT 
+                e.EML_NO AS EML_NO, 
+                e.EMPL_ID AS SEND_ID, 
+                e.EML_TTL AS EML_TTL, 
+                e.EML_CN AS EML_CN, 
+                CASE
+                    WHEN TRUNC(e.EML_DT) = TRUNC(SYSDATE) THEN TO_CHAR(e.EML_DT, 'HH24:MI:SS')
+                    ELSE TO_CHAR(e.EML_DT, 'YYYY-MM-DD')
+                END AS EML_DT, 
+                e.EML_DRF_YN AS EML_DRF_YN, 
+                e.MSC_CODE AS EMAIL_SEND_MSC_CODE, 
+                e.FILE_GROUP_NO AS FILE_GROUP_NO, 
+                r.MRE_NO AS MRE_NO, 
+                r.EMPL_ID AS EMPL_ID, 
+                r.EML_NO AS RE_EML_NO, 
+                r.MRE_YN AS MRE_YN, 
+                r.MSC_CODE AS MAIL_RE_MSC_CODE,
+                emp.EMPL_NM AS EMPL_NM
+            FROM 
+                EMAIL_SEND e
+            JOIN 
+                MAIL_RE r ON e.EML_NO = r.EML_NO
+            JOIN 
+                EMPLOYEE emp ON e.EMPL_ID = emp.EMPL_ID 
+            WHERE 
+                r.MSC_CODE = 'MSC002'
+            AND r.EMPL_ID = #{emplId}
+            OR e.MSC_CODE = 'MSC002'
+            ORDER BY 
+                e.EML_DT DESC
+-->
+<select id="selectTrashListPaged" resultType="mscVO" parameterType="map">
+    <![CDATA[
+    SELECT * FROM (
+        SELECT a.*, ROWNUM rnum FROM (
+        
+        	WITH T AS (
+					    SELECT 
+					        E.EML_NO, 
+					        E.EMPL_ID AS SEND_ID, 
+					        E.EML_TTL, 
+					        E.EML_CN,
+					        CASE
+					            WHEN TRUNC(e.EML_DT) = TRUNC(SYSDATE) THEN TO_CHAR(e.EML_DT, 'HH24:MI:SS')
+					            ELSE TO_CHAR(e.EML_DT, 'YYYY-MM-DD')
+					        END AS EML_DT,
+					        E.EML_DRF_YN, 
+					        E.MSC_CODE, 
+					        E.FILE_GROUP_NO,
+					        NULL AS MRE_NO,
+					        NULL AS EMPL_ID,
+					        NULL AS RE_EML_NO,
+					        NULL AS MRE_YN,
+					        NULL AS MAIL_RE_MSC_CODE,
+					        (SELECT EMP.EMPL_NM FROM EMPLOYEE EMP WHERE E.EMPL_ID = EMP.EMPL_ID) AS EMPL_NM,
+					        'EMAIL_SEND' AS GUBUN
+					    FROM EMAIL_SEND E
+					    WHERE E.MSC_CODE = 'MSC002'
+					    AND E.EMPL_ID = #{emplId}
+					    
+					    UNION ALL
+					    
+					    SELECT 
+					        (SELECT E2.EML_NO FROM EMAIL_SEND E2 WHERE R.EML_NO = E2.EML_NO) AS EML_NO,
+					        (SELECT E2.EMPL_ID FROM EMAIL_SEND E2 WHERE R.EML_NO = E2.EML_NO) AS SEND_ID,
+					        (SELECT E2.EML_TTL FROM EMAIL_SEND E2 WHERE R.EML_NO = E2.EML_NO) AS EML_TTL,
+					        (SELECT E2.EML_CN FROM EMAIL_SEND E2 WHERE R.EML_NO = E2.EML_NO) AS EML_CN,
+					        (SELECT CASE
+					                    WHEN TRUNC(E2.EML_DT) = TRUNC(SYSDATE) THEN TO_CHAR(E2.EML_DT, 'HH24:MI:SS')
+					                    ELSE TO_CHAR(E2.EML_DT, 'YYYY-MM-DD')
+					                END 
+					         FROM EMAIL_SEND E2 WHERE R.EML_NO = E2.EML_NO) AS EML_DT,
+					        (SELECT E2.EML_DRF_YN FROM EMAIL_SEND E2 WHERE R.EML_NO = E2.EML_NO) AS EML_DRF_YN,
+					        (SELECT E2.MSC_CODE FROM EMAIL_SEND E2 WHERE R.EML_NO = E2.EML_NO) AS MSC_CODE,
+					        (SELECT E2.FILE_GROUP_NO FROM EMAIL_SEND E2 WHERE R.EML_NO = E2.EML_NO) AS FILE_GROUP_NO,
+					        R.MRE_NO, 
+					        R.EMPL_ID, 
+					        R.EML_NO AS RE_EML_NO,
+					        R.MRE_YN, 
+					        R.MSC_CODE AS MAIL_RE_MSC_CODE,
+					        (SELECT EMP2.EMPL_NM FROM EMPLOYEE EMP2 WHERE R.EMPL_ID = EMP2.EMPL_ID) AS EMPL_NM,
+					        'MAIL_RE' AS GUBUN
+					    FROM MAIL_RE R
+					    WHERE R.MSC_CODE = 'MSC002'
+					    AND R.EMPL_ID = #{emplId}
+					)
+					SELECT 
+					    NVL(T.EML_NO, T.RE_EML_NO) AS EML_NO, 
+					    T.SEND_ID, 
+					    T.EML_TTL, 
+					    T.EML_CN, 
+					    T.EML_DT, 
+					    T.EML_DRF_YN, 
+					    T.MSC_CODE, 
+					    T.FILE_GROUP_NO,
+					    T.MRE_NO, 
+					    T.EMPL_ID, 
+					    T.RE_EML_NO, 
+					    T.MRE_YN, 
+					    T.MAIL_RE_MSC_CODE, 
+					    T.EMPL_NM, 
+					    T.GUBUN
+					FROM T
+					ORDER BY T.EML_DT DESC
+			
+        ) a 
+        WHERE ROWNUM <= #{endRow}
+    ) 
+    WHERE rnum >= #{startRow}
+    ]]>
+</select>
+
+<select id="cntTrashList" resultType="int" parameterType="string">
+    SELECT COUNT(*)
+    FROM MAIL_RE
+    WHERE MSC_CODE = 'MSC002' AND EMPL_ID = #{emplId}
+</select>
+
+<select id="sendListPaged" resultType="mscVO" parameterType="map">
+    <![CDATA[
+    SELECT * FROM (
+        SELECT a.*, ROWNUM rnum FROM (
+        
+           SELECT 
+		    e.EML_NO AS EML_NO, 
+		    e.EMPL_ID AS SEND_ID, 
+		    e.EML_TTL AS EML_TTL, 
+		    REGEXP_REPLACE(DBMS_LOB.SUBSTR(e.EML_CN, 180, 1), '<[^>]+>', '') AS EML_CN, 
+		    CASE
+		        WHEN TRUNC(e.EML_DT) = TRUNC(SYSDATE) THEN TO_CHAR(e.EML_DT, 'HH24:MI:SS')
+		        ELSE TO_CHAR(e.EML_DT, 'YYYY-MM-DD')
+		    END AS EML_DT, 
+		    e.EML_DRF_YN AS EML_DRF_YN, 
+		    e.MSC_CODE AS EMAIL_SEND_MSC_CODE, 
+		    e.FILE_GROUP_NO AS FILE_GROUP_NO, 
+		    emp.EMPL_NM AS EMPL_NM
+		FROM 
+		    EMAIL_SEND e
+		JOIN 
+		    EMPLOYEE emp ON e.EMPL_ID = emp.EMPL_ID 
+		WHERE 
+		    e.EMPL_ID = #{emplId}
+		AND e.EML_DRF_YN = 'N'
+		ORDER BY 
+		    e.EML_DT DESC
+                
+        ) a 
+        WHERE ROWNUM <= #{endRow}
+    ) 
+    WHERE rnum >= #{startRow}
+    ]]>
+</select>
+
+
+<select id="cntSendList" resultType="int" parameterType="string">
+    SELECT COUNT(*)
+    FROM EMAIL_SEND
+    WHERE EMPL_ID = #{emplId}
+</select>
+
+   <select id="drfListPaged" resultType="mscVO" parameterType="map">
+        <![CDATA[
+        SELECT * FROM (
+            SELECT a.*, ROWNUM rnum FROM (
+                SELECT 
+                    e.EML_NO AS EML_NO, 
+                    e.EMPL_ID AS SEND_ID, 
+                    e.EML_TTL AS EML_TTL, 
+                    e.EML_CN AS EML_CN, 
+                    CASE
+                        WHEN TRUNC(e.EML_DT) = TRUNC(SYSDATE) THEN TO_CHAR(e.EML_DT, 'HH24:MI:SS')
+                        ELSE TO_CHAR(e.EML_DT, 'YYYY-MM-DD')
+                    END AS EML_DT, 
+                    e.EML_DRF_YN AS EML_DRF_YN, 
+                    e.MSC_CODE AS EMAIL_SEND_MSC_CODE, 
+                    e.FILE_GROUP_NO AS FILE_GROUP_NO,
+                    emp.EMPL_NM AS EMPL_NM
+                FROM 
+                    EMAIL_SEND e
+                JOIN 
+                    EMPLOYEE emp ON e.EMPL_ID = emp.EMPL_ID 
+                WHERE 
+                    e.EML_DRF_YN = 'Y'
+                    AND e.EMPL_ID = #{emplId}
+                ORDER BY 
+                    e.EML_DT DESC
+            ) a 
+            WHERE ROWNUM <= #{endRow}
+        ) 
+        WHERE rnum >= #{startRow}
+        ]]>
+    </select>
+
+    <select id="cntDrfList" resultType="int" parameterType="string">
+        SELECT COUNT(*)
+        FROM EMAIL_SEND
+        WHERE EML_DRF_YN = 'Y' AND EMPL_ID = #{emplId}
+    </select>
+	
+<select id="searchMailsByTitle" parameterType="map" resultType="mscVO">
+ <![CDATA[
+    SELECT * FROM ( 
+        SELECT a.*, ROWNUM rnum FROM (
+            SELECT 
+                e.EML_NO AS EML_NO,
+                e.EMPL_ID AS SEND_ID,
+                e.EML_TTL AS EML_TTL,
+                e.EML_CN AS EML_CN,
+                CASE
+                    WHEN TRUNC(e.EML_DT) = TRUNC(SYSDATE) THEN TO_CHAR(e.EML_DT, 'HH24:MI:SS')
+                    ELSE TO_CHAR(e.EML_DT, 'YYYY-MM-DD')
+                END AS EML_DT,
+                e.EML_DRF_YN AS EML_DRF_YN,
+                e.MSC_CODE AS EMAIL_SEND_MSC_CODE,
+                e.FILE_GROUP_NO AS FILE_GROUP_NO,
+                r.MRE_NO AS MRE_NO,
+                r.EMPL_ID AS EMPL_ID,
+                r.EML_NO AS RE_EML_NO,
+                r.MRE_YN AS MRE_YN,
+                r.MSC_CODE AS MAIL_RE_MSC_CODE,
+                emp.EMPL_NM AS EMPL_NM
+            FROM 
+                EMAIL_SEND e
+            JOIN 
+                MAIL_RE r ON e.EML_NO = r.EML_NO
+            JOIN 
+                EMPLOYEE emp ON e.EMPL_ID = emp.EMPL_ID
+            WHERE 
+                r.EMPL_ID = #{emplId}
+                AND e.EML_TTL LIKE '%' || #{query} || '%'
+                AND r.MSC_CODE = 'MSC001'
+            ORDER BY 
+                e.EML_DT DESC
+        ) a 
+        WHERE ROWNUM <= #{endRow}
+    ) 
+    WHERE rnum >= #{startRow}
+     ]]>
+</select>
+
+<select id="searchMailsByContent" parameterType="map" resultType="mscVO">
+ <![CDATA[
+    SELECT * FROM ( 
+        SELECT a.*, ROWNUM rnum FROM (
+            SELECT 
+                e.EML_NO AS EML_NO,
+                e.EMPL_ID AS SEND_ID,
+                e.EML_TTL AS EML_TTL,
+                e.EML_CN AS EML_CN,
+                CASE
+                    WHEN TRUNC(e.EML_DT) = TRUNC(SYSDATE) THEN TO_CHAR(e.EML_DT, 'HH24:MI:SS')
+                    ELSE TO_CHAR(e.EML_DT, 'YYYY-MM-DD')
+                END AS EML_DT,
+                e.EML_DRF_YN AS EML_DRF_YN,
+                e.MSC_CODE AS EMAIL_SEND_MSC_CODE,
+                e.FILE_GROUP_NO AS FILE_GROUP_NO,
+                r.MRE_NO AS MRE_NO,
+                r.EMPL_ID AS EMPL_ID,
+                r.EML_NO AS RE_EML_NO,
+                r.MRE_YN AS MRE_YN,
+                r.MSC_CODE AS MAIL_RE_MSC_CODE,
+                emp.EMPL_NM AS EMPL_NM
+            FROM 
+                EMAIL_SEND e
+            JOIN 
+                MAIL_RE r ON e.EML_NO = r.EML_NO
+            JOIN 
+                EMPLOYEE emp ON e.EMPL_ID = emp.EMPL_ID
+            WHERE 
+                r.EMPL_ID = #{emplId}
+                AND e.EML_CN LIKE '%' || #{query} || '%'
+                AND r.MSC_CODE = 'MSC001'
+            ORDER BY 
+                e.EML_DT DESC
+        ) a 
+        WHERE ROWNUM <= #{endRow}
+    ) 
+    WHERE rnum >= #{startRow}
+     ]]>
+</select>
+
+<select id="ImposearchMailsByTitle" parameterType="map" resultType="mscVO">
+ <![CDATA[
+    SELECT * FROM ( 
+        SELECT a.*, ROWNUM rnum FROM (
+            SELECT 
+                e.EML_NO AS EML_NO,
+                e.EMPL_ID AS SEND_ID,
+                e.EML_TTL AS EML_TTL,
+                e.EML_CN AS EML_CN,
+                CASE
+                    WHEN TRUNC(e.EML_DT) = TRUNC(SYSDATE) THEN TO_CHAR(e.EML_DT, 'HH24:MI:SS')
+                    ELSE TO_CHAR(e.EML_DT, 'YYYY-MM-DD')
+                END AS EML_DT,
+                e.EML_DRF_YN AS EML_DRF_YN,
+                e.MSC_CODE AS EMAIL_SEND_MSC_CODE,
+                e.FILE_GROUP_NO AS FILE_GROUP_NO,
+                r.MRE_NO AS MRE_NO,
+                r.EMPL_ID AS EMPL_ID,
+                r.EML_NO AS RE_EML_NO,
+                r.MRE_YN AS MRE_YN,
+                r.MSC_CODE AS MAIL_RE_MSC_CODE,
+                emp.EMPL_NM AS EMPL_NM
+            FROM 
+                EMAIL_SEND e
+            JOIN 
+                MAIL_RE r ON e.EML_NO = r.EML_NO
+            JOIN 
+                EMPLOYEE emp ON e.EMPL_ID = emp.EMPL_ID
+            WHERE 
+                r.EMPL_ID = #{emplId}
+                AND e.EML_TTL LIKE '%' || #{query} || '%'
+                AND r.MSC_CODE = 'MSC004'
+            ORDER BY 
+                e.EML_DT DESC
+        ) a 
+        WHERE ROWNUM <= #{endRow}
+    ) 
+    WHERE rnum >= #{startRow}
+     ]]>
+</select>
+
+<select id="ImposearchMailsByContent" parameterType="map" resultType="mscVO">
+ <![CDATA[
+    SELECT * FROM ( 
+        SELECT a.*, ROWNUM rnum FROM (
+            SELECT 
+                e.EML_NO AS EML_NO,
+                e.EMPL_ID AS SEND_ID,
+                e.EML_TTL AS EML_TTL,
+                e.EML_CN AS EML_CN,
+                CASE
+                    WHEN TRUNC(e.EML_DT) = TRUNC(SYSDATE) THEN TO_CHAR(e.EML_DT, 'HH24:MI:SS')
+                    ELSE TO_CHAR(e.EML_DT, 'YYYY-MM-DD')
+                END AS EML_DT,
+                e.EML_DRF_YN AS EML_DRF_YN,
+                e.MSC_CODE AS EMAIL_SEND_MSC_CODE,
+                e.FILE_GROUP_NO AS FILE_GROUP_NO,
+                r.MRE_NO AS MRE_NO,
+                r.EMPL_ID AS EMPL_ID,
+                r.EML_NO AS RE_EML_NO,
+                r.MRE_YN AS MRE_YN,
+                r.MSC_CODE AS MAIL_RE_MSC_CODE,
+                emp.EMPL_NM AS EMPL_NM
+            FROM 
+                EMAIL_SEND e
+            JOIN 
+                MAIL_RE r ON e.EML_NO = r.EML_NO
+            JOIN 
+                EMPLOYEE emp ON e.EMPL_ID = emp.EMPL_ID
+            WHERE 
+                r.EMPL_ID = #{emplId}
+                AND e.EML_CN LIKE '%' || #{query} || '%'
+                AND r.MSC_CODE = 'MSC004'
+            ORDER BY 
+                e.EML_DT DESC
+        ) a 
+        WHERE ROWNUM <= #{endRow}
+    ) 
+    WHERE rnum >= #{startRow}
+     ]]>
+</select>
+
+<select id="TrashsearchMailsByTitle" parameterType="map" resultType="mscVO">
+ <![CDATA[
+    SELECT * FROM ( 
+        SELECT a.*, ROWNUM rnum FROM (
+            SELECT 
+                e.EML_NO AS EML_NO,
+                e.EMPL_ID AS SEND_ID,
+                e.EML_TTL AS EML_TTL,
+                e.EML_CN AS EML_CN,
+                CASE
+                    WHEN TRUNC(e.EML_DT) = TRUNC(SYSDATE) THEN TO_CHAR(e.EML_DT, 'HH24:MI:SS')
+                    ELSE TO_CHAR(e.EML_DT, 'YYYY-MM-DD')
+                END AS EML_DT,
+                e.EML_DRF_YN AS EML_DRF_YN,
+                e.MSC_CODE AS EMAIL_SEND_MSC_CODE,
+                e.FILE_GROUP_NO AS FILE_GROUP_NO,
+                r.MRE_NO AS MRE_NO,
+                r.EMPL_ID AS EMPL_ID,
+                r.EML_NO AS RE_EML_NO,
+                r.MRE_YN AS MRE_YN,
+                r.MSC_CODE AS MAIL_RE_MSC_CODE,
+                emp.EMPL_NM AS EMPL_NM
+            FROM 
+                EMAIL_SEND e
+            JOIN 
+                MAIL_RE r ON e.EML_NO = r.EML_NO
+            JOIN 
+                EMPLOYEE emp ON e.EMPL_ID = emp.EMPL_ID
+            WHERE 
+                r.EMPL_ID = #{emplId}
+                AND e.EML_TTL LIKE '%' || #{query} || '%'
+                AND r.MSC_CODE = 'MSC002'
+            ORDER BY 
+                e.EML_DT DESC
+        ) a 
+        WHERE ROWNUM <= #{endRow}
+    ) 
+    WHERE rnum >= #{startRow}
+     ]]>
+</select>
+
+<select id="TrashsearchMailsByContent" parameterType="map" resultType="mscVO">
+ <![CDATA[
+    SELECT * FROM ( 
+        SELECT a.*, ROWNUM rnum FROM (
+            SELECT 
+                e.EML_NO AS EML_NO,
+                e.EMPL_ID AS SEND_ID,
+                e.EML_TTL AS EML_TTL,
+                e.EML_CN AS EML_CN,
+                CASE
+                    WHEN TRUNC(e.EML_DT) = TRUNC(SYSDATE) THEN TO_CHAR(e.EML_DT, 'HH24:MI:SS')
+                    ELSE TO_CHAR(e.EML_DT, 'YYYY-MM-DD')
+                END AS EML_DT,
+                e.EML_DRF_YN AS EML_DRF_YN,
+                e.MSC_CODE AS EMAIL_SEND_MSC_CODE,
+                e.FILE_GROUP_NO AS FILE_GROUP_NO,
+                r.MRE_NO AS MRE_NO,
+                r.EMPL_ID AS EMPL_ID,
+                r.EML_NO AS RE_EML_NO,
+                r.MRE_YN AS MRE_YN,
+                r.MSC_CODE AS MAIL_RE_MSC_CODE,
+                emp.EMPL_NM AS EMPL_NM
+            FROM 
+                EMAIL_SEND e
+            JOIN 
+                MAIL_RE r ON e.EML_NO = r.EML_NO
+            JOIN 
+                EMPLOYEE emp ON e.EMPL_ID = emp.EMPL_ID
+            WHERE 
+                r.EMPL_ID = #{emplId}
+                AND e.EML_CN LIKE '%' || #{query} || '%'
+                AND r.MSC_CODE = 'MSC002'
+            ORDER BY 
+                e.EML_DT DESC
+        ) a 
+        WHERE ROWNUM <= #{endRow}
+    ) 
+    WHERE rnum >= #{startRow}
+     ]]>
+</select>
+
+<select id="MinesearchMailsByTitle" parameterType="map" resultType="mscVO">
+ <![CDATA[
+    SELECT * FROM ( 
+        SELECT a.*, ROWNUM rnum FROM (
+            SELECT 
+                e.EML_NO AS EML_NO,
+                e.EMPL_ID AS SEND_ID,
+                e.EML_TTL AS EML_TTL,
+                e.EML_CN AS EML_CN,
+                CASE
+                    WHEN TRUNC(e.EML_DT) = TRUNC(SYSDATE) THEN TO_CHAR(e.EML_DT, 'HH24:MI:SS')
+                    ELSE TO_CHAR(e.EML_DT, 'YYYY-MM-DD')
+                END AS EML_DT,
+                e.EML_DRF_YN AS EML_DRF_YN,
+                e.MSC_CODE AS EMAIL_SEND_MSC_CODE,
+                e.FILE_GROUP_NO AS FILE_GROUP_NO,
+                r.MRE_NO AS MRE_NO,
+                r.EMPL_ID AS EMPL_ID,
+                r.EML_NO AS RE_EML_NO,
+                r.MRE_YN AS MRE_YN,
+                r.MSC_CODE AS MAIL_RE_MSC_CODE,
+                emp.EMPL_NM AS EMPL_NM
+            FROM 
+                EMAIL_SEND e
+            JOIN 
+                MAIL_RE r ON e.EML_NO = r.EML_NO
+            JOIN 
+                EMPLOYEE emp ON e.EMPL_ID = emp.EMPL_ID
+            WHERE 
+                r.EMPL_ID = #{emplId}
+                AND e.EML_TTL LIKE '%' || #{query} || '%'
+                AND r.MSC_CODE = 'MSC003'
+            ORDER BY 
+                e.EML_DT DESC
+        ) a 
+        WHERE ROWNUM <= #{endRow}
+    ) 
+    WHERE rnum >= #{startRow}
+     ]]>
+</select>
+
+<select id="MinesearchMailsByContent" parameterType="map" resultType="mscVO">
+ <![CDATA[
+    SELECT * FROM ( 
+        SELECT a.*, ROWNUM rnum FROM (
+            SELECT 
+                e.EML_NO AS EML_NO,
+                e.EMPL_ID AS SEND_ID,
+                e.EML_TTL AS EML_TTL,
+                e.EML_CN AS EML_CN,
+                CASE
+                    WHEN TRUNC(e.EML_DT) = TRUNC(SYSDATE) THEN TO_CHAR(e.EML_DT, 'HH24:MI:SS')
+                    ELSE TO_CHAR(e.EML_DT, 'YYYY-MM-DD')
+                END AS EML_DT,
+                e.EML_DRF_YN AS EML_DRF_YN,
+                e.MSC_CODE AS EMAIL_SEND_MSC_CODE,
+                e.FILE_GROUP_NO AS FILE_GROUP_NO,
+                r.MRE_NO AS MRE_NO,
+                r.EMPL_ID AS EMPL_ID,
+                r.EML_NO AS RE_EML_NO,
+                r.MRE_YN AS MRE_YN,
+                r.MSC_CODE AS MAIL_RE_MSC_CODE,
+                emp.EMPL_NM AS EMPL_NM
+            FROM 
+                EMAIL_SEND e
+            JOIN 
+                MAIL_RE r ON e.EML_NO = r.EML_NO
+            JOIN 
+                EMPLOYEE emp ON e.EMPL_ID = emp.EMPL_ID
+            WHERE 
+                r.EMPL_ID = #{emplId}
+                AND e.EML_CN LIKE '%' || #{query} || '%'
+                AND r.MSC_CODE = 'MSC003'
+            ORDER BY 
+                e.EML_DT DESC
+        ) a 
+        WHERE ROWNUM <= #{endRow}
+    ) 
+    WHERE rnum >= #{startRow}
+     ]]>
+</select>
+
+<select id="DrfesearchMailsByTitle" parameterType="map" resultType="mscVO">
+    <![CDATA[
+        SELECT * FROM (
+            SELECT a.*, ROWNUM rnum FROM (
+                SELECT 
+                    e.eml_no, 
+                    e.empl_id, 
+                    e.eml_ttl, 
+                    e.eml_cn, 
+                    CASE
+                        WHEN TRUNC(e.eml_dt) = TRUNC(SYSDATE) THEN TO_CHAR(e.eml_dt, 'HH24:MI:SS')
+                        ELSE TO_CHAR(e.eml_dt, 'YYYY-MM-DD')
+                    END AS eml_dt, 
+                    e.eml_drf_yn, 
+                    e.msc_code, 
+                    e.file_group_no,
+                    emp.empl_nm 
+                FROM 
+                    email_send e
+                JOIN 
+                    employee emp ON e.empl_id = emp.empl_id 
+                WHERE 
+                    e.eml_drf_yn = 'Y'
+                    AND e.empl_id = #{emplId}
+                    AND e.eml_ttl LIKE '%' || #{query} || '%'
+                ORDER BY 
+                    eml_dt ASC
+            ) a 
+            WHERE ROWNUM <= #{endRow}
+        ) 
+        WHERE rnum >= #{startRow}
+    ]]>
+</select>
+
+<select id="DrfsearchMailsByContent" parameterType="map" resultType="mscVO">
+    <![CDATA[
+        SELECT * FROM (
+            SELECT a.*, ROWNUM rnum FROM (
+                SELECT 
+                    e.eml_no, 
+                    e.empl_id, 
+                    e.eml_ttl, 
+                    e.eml_cn, 
+                    CASE
+                        WHEN TRUNC(e.eml_dt) = TRUNC(SYSDATE) THEN TO_CHAR(e.eml_dt, 'HH24:MI:SS')
+                        ELSE TO_CHAR(e.eml_dt, 'YYYY-MM-DD')
+                    END AS eml_dt, 
+                    e.eml_drf_yn, 
+                    e.msc_code, 
+                    e.file_group_no,
+                    emp.empl_nm 
+                FROM 
+                    email_send e
+                JOIN 
+                    employee emp ON e.empl_id = emp.empl_id 
+                WHERE 
+                    e.eml_drf_yn = 'N'
+                    AND e.empl_id = #{emplId}
+                    AND e.eml_cn LIKE '%' || #{query} || '%'
+                ORDER BY 
+                    eml_dt ASC
+            ) a 
+            WHERE ROWNUM <= #{endRow}
+        ) 
+        WHERE rnum >= #{startRow}
+    ]]>
+</select>
+
+<select id="SendesearchMailsByTitle" parameterType="map" resultType="mscVO">
+    <![CDATA[
+        SELECT * FROM (
+            SELECT a.*, ROWNUM rnum FROM (
+                SELECT 
+                    e.eml_no, 
+                    e.empl_id, 
+                    e.eml_ttl, 
+                    e.eml_cn, 
+                    CASE
+                        WHEN TRUNC(e.eml_dt) = TRUNC(SYSDATE) THEN TO_CHAR(e.eml_dt, 'HH24:MI:SS')
+                        ELSE TO_CHAR(e.eml_dt, 'YYYY-MM-DD')
+                    END AS eml_dt, 
+                    e.eml_drf_yn, 
+                    e.msc_code, 
+                    e.file_group_no,
+                    emp.empl_nm 
+                FROM 
+                    email_send e
+                JOIN 
+                    employee emp ON e.empl_id = emp.empl_id 
+                WHERE 
+                    e.eml_drf_yn = 'N'
+                    AND e.empl_id = #{emplId}
+                    AND e.eml_ttl LIKE '%' || #{query} || '%'
+                ORDER BY 
+                    eml_dt ASC
+            ) a 
+            WHERE ROWNUM <= #{endRow}
+        ) 
+        WHERE rnum >= #{startRow}
+    ]]>
+</select>
+
+<select id="SendsearchMailsByContent" parameterType="map" resultType="mscVO">
+    <![CDATA[
+        SELECT * FROM (
+            SELECT a.*, ROWNUM rnum FROM (
+                SELECT 
+                    e.eml_no, 
+                    e.empl_id, 
+                    e.eml_ttl, 
+                    e.eml_cn, 
+                    CASE
+                        WHEN TRUNC(e.eml_dt) = TRUNC(SYSDATE) THEN TO_CHAR(e.eml_dt, 'HH24:MI:SS')
+                        ELSE TO_CHAR(e.eml_dt, 'YYYY-MM-DD')
+                    END AS eml_dt, 
+                    e.eml_drf_yn, 
+                    e.msc_code, 
+                    e.file_group_no,
+                    emp.empl_nm 
+                FROM 
+                    email_send e
+                JOIN 
+                    employee emp ON e.empl_id = emp.empl_id 
+                WHERE 
+                    e.eml_drf_yn = 'Y'
+                    AND e.empl_id = #{emplId}
+                    AND e.eml_cn LIKE '%' || #{query} || '%'
+                ORDER BY 
+                    eml_dt ASC
+            ) a 
+            WHERE ROWNUM <= #{endRow}
+        ) 
+        WHERE rnum >= #{startRow}
+    ]]>
+</select>
+
+
+
+<select id="countSearchMailsByTitle" parameterType="map" resultType="int">
+    SELECT COUNT(*)
+    FROM EMAIL_SEND e
+    JOIN MAIL_RE r ON e.EML_NO = r.EML_NO
+    WHERE r.EMPL_ID = #{emplId}
+    AND e.EML_TTL LIKE '%' || #{query} || '%'
+</select>
+
+<select id="countSearchMailsByContent" parameterType="map" resultType="int">
+    SELECT COUNT(*)
+    FROM EMAIL_SEND e
+    JOIN MAIL_RE r ON e.EML_NO = r.EML_NO
+    WHERE r.EMPL_ID = #{emplId}
+    AND e.EML_CN LIKE '%' || #{query} || '%'
+</select>
+
+<update id="archiveMail">
+    UPDATE email_send
+    SET eml_drf_yn = 'A', msc_code = 'MSC002'
+    WHERE eml_no = #{emlNo}
+</update>
+
+<update id="updateEmlSendCode" parameterType="map">
+        UPDATE email_send
+        SET msc_code = #{mscCode}
+        WHERE eml_no = #{emlNo}
+</update>
+
+<update id="updateEmlSendCodeAndDelYn" parameterType="map">
+        UPDATE email_send
+        SET msc_code = #{mscCode}
+           ,eml_drf_yn = #{emlDrfYn}
+        WHERE eml_no = #{emlNo}
+</update>
+
+</mapper>

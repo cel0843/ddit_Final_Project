@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.mapper.IProjectMapper">
+	
+	<select id="projectList" parameterType="projectPrtcpVO" resultType="projectsVO">
+		SELECT 
+		    p.PROJ_NO
+		    ,p.PROJ_NAME
+		    ,p.PROJ_CRT_YMD
+		    ,p.PROJ_DDLN_YMD
+		    ,p.PROJ_MDFCN_YMD
+		    ,p.PROJ_EXPLN
+		    ,p.PROJ_PROG_PER
+		    ,p.PROJ_DEL_YN
+		FROM 
+		    PROJECTS p
+		JOIN 
+		    PROJECT_PRTCP pp
+		ON 
+		    p.PROJ_NO = pp.PROJ_NO
+		WHERE 
+		    pp.EMPL_ID = #{emplId} 
+		and 
+            p.PROJ_DEL_YN = 'N'
+	
+	</select>
+	
+	<select id="projectDeadList" parameterType="projectPrtcpVO" resultType="projectsVO">
+		SELECT 
+		    p.PROJ_NO
+		    ,p.PROJ_NAME
+		    ,p.PROJ_CRT_YMD
+		    ,p.PROJ_DDLN_YMD
+		    ,p.PROJ_EXPLN
+		    ,p.PROJ_PROG_PER
+		FROM 
+		    PROJECTS p
+		JOIN 
+		    PROJECT_PRTCP pp
+		ON 
+		    p.PROJ_NO = pp.PROJ_NO
+		WHERE 
+		    pp.EMPL_ID = #{emplId} 
+		and 
+            p.PROJ_DEL_YN = 'Y'
+	</select>
+	
+	<select id="selectScheduleList" resultType="map" parameterType="int">
+       SELECT 
+		    PROJ_SCHDL_NO, 
+		    PROJ_NO, 
+		    PROJ_SCHDL_NM, 
+		    PROJ_SCHDL_CN, 
+		    PROJ_SCHDL_COLOR, 
+		    PROJ_SCHDL_BGNG_DT, 
+		    PROJ_SCHDL_END_DT
+		FROM 
+		    PROJECT_SCHEDULE
+		WHERE 
+    		PROJ_NO = #{projNo}
+    </select>
+	
+	<select id="authCheck" parameterType="projectPrtcpVO" resultType="projectPrtcpVO">
+		select 
+			PROJ_NO
+			, EMPL_ID
+			, PROJ_MNGR_YN
+			, PROJ_JOIN_YN
+		from 
+			project_prtcp
+		where 
+			proj_no = #{projNo} 
+		and empl_id = #{emplId} 
+	
+	</select>
+	
+	<resultMap type="java.util.Map" id="prtcpMap">
+		<result column="PROJ_NO" property="PROJ_NO" />
+		<result column="PROJ_NAME" property="PROJ_NAME" />
+		<result column="EMPL_ID" property="EMPL_ID" />
+		<result column="EMPL_NM" property="EMPL_NM" />
+		<result column="PROJ_MNGR_YN" property="PROJ_MNGR_YN" />
+		<result column="PROJ_JOIN_YN" property="PROJ_JOIN_YN" />
+		<result column="POSITION_CD" property="POSITION_CD" />
+		<result column="DEPT_NM" property="DEPT_NM" />
+		<result column="PROFL_IMAGE_COURS" property="PROFL_IMAGE_COURS" javaType="java.lang.String" jdbcType="CLOB"/>
+	</resultMap>
+	
+	
+   <select id="projPrtcpList" parameterType="projectPrtcpVO" resultMap="prtcpMap">
+        SELECT 
+		    p.PROJ_NO,
+		    pr.PROJ_NAME, 
+		    p.EMPL_ID,
+		    e.EMPL_NM, -- 사원명
+		    p.PROJ_MNGR_YN,
+		    p.PROJ_JOIN_YN,
+		    e.POSITION_CD,
+		    d.DEPT_NM, -- 부서명
+		    e.PROFL_IMAGE_COURS -- 프로필 이미지
+		FROM 
+		    project_prtcp p
+		JOIN 
+		    employee e ON p.EMPL_ID = e.EMPL_ID
+		JOIN 
+		    projects pr ON p.PROJ_NO = pr.PROJ_NO
+		JOIN 
+		    department d ON e.DEPT_CD = d.DEPT_CD
+		WHERE 
+		    p.proj_no = #{projNo}
+		AND 
+		    p.PROJ_JOIN_YN = 'Y'
+    </select>
+	
+    <update id="updateDeadLine">
+    <![CDATA[ 
+	   	UPDATE PROJECTS
+	    SET PROJ_DEL_YN = 'Y'
+	    WHERE TO_DATE(PROJ_DDLN_YMD, 'yyyyMMdd') < sysdate
+    ]]>
+    </update>
+
+    
+	
+</mapper>

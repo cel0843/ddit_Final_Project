@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.mapper.IFingerprintMapper">
+
+	<select id="getWorkList" resultType="fingerprintVO">
+		SELECT 
+		    e.FID
+		    , e.EMPL_ID
+		    , e.EMPL_NM
+		    , e.PROFL_IMAGE_COURS as "PROFILE_IMG"
+		    , TO_CHAR(w.WORK_BGNG_HR, 'yyyy/mm/dd hh24:mi') AS "IN_TIME"
+		    , TO_CHAR(w.WORK_END_HR, 'yyyy/mm/dd hh24:mi') AS "OUT_TIME"
+		FROM works w
+		INNER JOIN employee e ON w.empl_ID = e.empl_ID
+		WHERE TO_CHAR(w.WORK_BGNG_HR, 'YYYYMMDD') = TO_CHAR(SYSDATE, 'YYYYMMDD')
+		ORDER BY w.WORK_BGNG_HR DESC
+	</select>
+	
+	<!-- fid로 emplId 조회 -->
+	<select id="selectEmplIdbyFid" parameterType="String" resultType="String">
+		select empl_id as "emplId" from employee where fid = #{fid}
+	</select>
+	
+	<insert id="insertWorkBeginTime" parameterType="String">
+		INSERT INTO WORKS (
+		    WORK_NO,
+		    EMPL_ID,
+		    WORK_BGNG_HR,
+		    WORK_END_HR,
+		    ATT_DT
+		)
+		SELECT
+		    seq_work_no.NEXTVAL,
+		    #{emplId},
+		    SYSDATE,
+		    TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || ' ' || '00:00', 'YYYY-MM-DD HH24:MI'),
+		    SYSDATE
+		FROM dual
+		WHERE NOT EXISTS (
+		    SELECT 1
+		    FROM WORKS
+		    WHERE TO_CHAR(WORK_BGNG_HR, 'YYYYMMDD') = TO_CHAR(SYSDATE, 'YYYYMMDD')
+		    AND EMPL_ID = #{emplId}
+		)
+	</insert>
+
+</mapper>

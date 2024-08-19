@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.mapper.IOrganizationMapper">
+	
+	<select id="emplList" resultType="emplVO">
+		select 
+		    empl_id, dept_cd, (select dept_nm from department d where d.dept_cd = e.dept_cd) as "deptNm", empl_nm, position_cd,
+		    (select cm_cd_nm from common_code where cm_cd = position_cd) as "positionCdNm",
+		    empl_pswd, rrno, email, telno, zip, bsc_addr, dtl_addr, jncmp_ymd, 
+		    rsgntn_ymd, ems_stts_cd, jbttl_nm, profl_image_cours, esgn
+		from employee e
+		order by 2 asc, position_cd desc
+	</select>
+	
+	<select id="deptList" resultType="deptVO">
+		SELECT DEPT_CD, DEPT_NM, DEPT_UPPER_CD, DPRLR_NM, DEPT_TELNO, DEPT_TY_ST
+		FROM DEPARTMENT	
+	</select>
+	
+ 	<!-- <select id="emplList2" resultType="emplVO">
+ 	<![CDATA[
+		SELECT DEPT_CD, EMPL_NM, EMAIL,TELNO,POSITION_CD
+			FROM EMPLOYEE
+			WHERE DEPT_CD = 'DEPT_01' AND POSITION_CD <= 'POSITION04' AND EMS_STTS_CD='EMS001'
+			ORDER BY DEPT_CD ASC, POSITION_CD DESC 
+			
+		SELECT DEPT_CD, EMPL_NM, EMAIL,TELNO,POSITION_CD
+			FROM EMPLOYEE
+			WHERE DEPT_CD = 'DEPT_02' AND POSITION_CD <= 'POSITION04' AND EMS_STTS_CD='EMS001'
+			ORDER BY DEPT_CD ASC, POSITION_CD DESC 
+		
+		SELECT DEPT_CD, EMPL_NM, EMAIL,TELNO,POSITION_CD
+			FROM EMPLOYEE
+			WHERE DEPT_CD = 'DEPT_03' AND POSITION_CD <= 'POSITION04' AND EMS_STTS_CD='EMS001'
+			ORDER BY DEPT_CD ASC, POSITION_CD DESC 
+		
+		SELECT DEPT_CD, EMPL_NM, EMAIL,TELNO,POSITION_CD
+			FROM EMPLOYEE
+			WHERE DEPT_CD = 'DEPT_04' AND POSITION_CD <= 'POSITION04' AND EMS_STTS_CD='EMS001'
+			ORDER BY DEPT_CD ASC, POSITION_CD DESC 
+		
+		SELECT DEPT_CD, EMPL_NM, EMAIL,TELNO,POSITION_CD
+			FROM EMPLOYEE
+			WHERE DEPT_CD = 'DEPT_05' AND POSITION_CD <= 'POSITION04' AND EMS_STTS_CD='EMS001'
+			ORDER BY DEPT_CD ASC, POSITION_CD DESC 				
+	]]>		
+	</select>  -->
+	
+	<select id="emplDetail" parameterType="String" resultType="emplVO">
+		SELECT E.EMPL_ID, E.POSITION_CD, E.DEPT_CD, E.EMPL_NM, E.EMAIL, E.TELNO, E.PROFL_IMAGE_COURS, D.DEPT_NM
+		FROM EMPLOYEE E INNER JOIN DEPARTMENT D ON(E.DEPT_CD = D.DEPT_CD)
+		WHERE EMPL_ID = #{emplId}
+	</select>
+
+<!-- 	<resultMap type="emplVO" id="emplMap"> -->
+<!-- 		<id property="emplId" column="empl_id"/> -->
+<!-- 		<result property="emplId" column="empl_id"/> -->
+<!-- 		<result property="deptCd" column="dept_cd"/> -->
+<!-- 		<result property="emplNm" column="empl_nm"/> -->
+<!-- 		<result property="emplPswd" column="empl_pswd"/> -->
+<!-- 		<result property="rrno" column="rr_No"/> -->
+<!-- 		<result property="email" column="email"/> -->
+<!-- 		<result property="telno" column="telno"/> -->
+<!-- 		<result property="zip" column="zip"/> -->
+<!-- 		<result property="bscAddr" column="bscAddr"/> -->
+<!-- 		<result property="dtladdr" column="dtladdr"/> -->
+<!-- 		<result property="jncmpYmd" column="jncmpYmd"/> -->
+<!-- 		<result property="rsgntnYmd" column="rsgntnYmd"/> -->
+<!-- 		<result property="emsSttsCd" column="emsSttsCd"/> -->
+<!-- 		<result property="positionCd" column="positionCd"/> -->
+<!-- 		<result property="jbttlNm" column="jbttlNm"/> -->
+<!-- 		<result property="esgn" column="esgn"/> -->
+<!-- 		<result property="enabled" column="enabled"/> -->
+<!-- 		<result property="proflImageCours" column="proflImageCours"/> -->
+		
+<!-- 	</resultMap> -->
+	
+	
+	
+</mapper> 

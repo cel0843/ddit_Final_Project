@@ -1,0 +1,257 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.mapper.ITaskMapper">
+	
+	<resultMap id="TaskEmployeeResultMap" type="map">
+	        <result property="taskNo" column="TASK_NO"/>
+	        <result property="projNo" column="PROJ_NO"/>
+	        <result property="emplId" column="EMPL_ID"/>
+	        <result property="emplNm" column="EMPL_NM"/>
+	        <result property="taskTtl" column="TASK_TTL"/>
+	        <result property="taskCn" column="TASK_CN" jdbcType="CLOB"/>
+	        <result property="taskBgngYmd" column="TASK_BGNG_YMD"/>
+	        <result property="taskDdlnYmd" column="TASK_DDLN_YMD"/>
+	        <result property="taskMdfcnYmd" column="TASK_MDFCN_YMD"/>
+	        <result property="taskPrgsPer" column="TASK_PRGS_PER"/>
+	        <result property="tkprCode" column="TKPR_CODE"/>
+	        <result property="tkstCode" column="TKST_CODE"/>
+	        <result property="taskRegYmd" column="TASK_REG_YMD"/>
+	        <result property="taskCtrSn" column="TASK_CTR_SN"/>
+	        <result property="taskDelYn" column="TASK_DEL_YN"/>
+	        <result property="deptCd" column="DEPT_CD"/>
+	        <result property="rrno" column="RRNO"/>
+	        <result property="emsSttsCd" column="EMS_STTS_CD"/>
+	        <result property="positionCd" column="POSITION_CD"/>
+	        <result property="jbttlNm" column="JBTTL_NM"/>
+	        <result property="enabled" column="ENABLED"/>
+	        <result property="truncatedTaskTtl" column="TRUNCATED_TASK_TTL"/>
+	</resultMap>
+
+    <sql id="taskSearch">
+        <if test="searchType != null and searchType == 'TASK_TTL'">
+            and (T.TASK_TTL like '%'||#{searchWord}||'%')
+        </if>
+        <if test="searchType != null and searchType == 'EMPL_NM'">
+            and (E.EMPL_NM like '%'||#{searchWord}||'%')
+        </if>
+    </sql>
+    
+
+    <select id="getTaskCount" parameterType="map" resultType="int">
+        select count(T.TASK_NO)
+        from PROJECT_TASK T
+        join EMPLOYEE E on T.EMPL_ID = E.EMPL_ID
+        where T.PROJ_NO = #{projNo}
+        and T.TASK_DEL_YN = 'N'
+        <include refid="taskSearch"/>
+    </select>
+
+    <select id="selectTaskList" parameterType="map" resultMap="TaskEmployeeResultMap">
+        SELECT 
+            b.*,
+            CASE 
+		        WHEN LENGTH(b.TASK_TTL) > 18 THEN SUBSTR(b.TASK_TTL, 1, 18) || '...'
+		        ELSE b.TASK_TTL
+		    END AS TRUNCATED_TASK_TTL
+        FROM (
+            SELECT
+                a.*, row_number() over(order by a.TASK_REG_YMD desc) rnum
+                --	, count(1) OVER() AS TOTAL_CNT 
+            FROM (
+                SELECT
+                    T.TASK_NO,
+                    T.PROJ_NO,
+                    T.EMPL_ID,
+                    E.EMPL_NM,
+                    T.TASK_TTL,
+                    TO_CHAR(T.TASK_CN) AS TASK_CN,
+                    T.TASK_BGNG_YMD,
+                    T.TASK_DDLN_YMD,
+                    T.TASK_MDFCN_YMD,
+                    T.TASK_PRGS_PER,
+                    T.TKPR_CODE,
+                    T.TKST_CODE,
+                    T.TASK_REG_YMD,
+                    T.TASK_CTR_SN,
+                    T.TASK_DEL_YN,
+                    E.DEPT_CD,
+                    E.RRNO,
+                    E.EMS_STTS_CD,
+                    E.POSITION_CD,
+                    E.JBTTL_NM,
+                    E.ENABLED
+                FROM 
+                    PROJECT_TASK T
+                JOIN 
+                    EMPLOYEE E ON T.EMPL_ID = E.EMPL_ID
+                WHERE 
+                    T.PROJ_NO = #{projNo}
+                    and T.TASK_DEL_YN = 'N'
+                <include refid="taskSearch"/>
+            ) a
+        ) b
+        <![CDATA[
+        WHERE b.rnum >= #{startRow} and b.rnum <= #{endRow}
+        ]]>
+       ORDER BY b.rnum
+    </select>
+	
+	
+	<select id="getTaskListByProject" parameterType="map" resultType="projectTaskVO">
+		SELECT 
+			TASK_NO
+			,PROJ_NO
+			,EMPL_ID
+			,TASK_TTL
+			,TASK_CN
+			,TASK_BGNG_YMD
+			,TASK_DDLN_YMD
+			,TASK_MDFCN_YMD
+			,TASK_PRGS_PER
+			,TKPR_CODE
+			,TKST_CODE
+			,TASK_REG_YMD
+			,TASK_CTR_SN
+			,TASK_DEL_YN 
+		FROM 
+			PROJECT_TASK
+		WHERE 
+			PROJ_NO = #{projNo} 
+			AND TKST_CODE = #{status}    
+			AND EMPL_ID = #{emplId}    
+		ORDER BY 
+			TASK_DDLN_YMD 
+	</select>
+	
+	<select id="selectTaskDetail" parameterType="int" resultType="projectTaskVO">
+         SELECT 
+		 	TASK_NO
+		 	,EMPL_ID
+		 	,TASK_TTL
+		 	,TASK_CN
+		 	,TASK_BGNG_YMD
+		 	,TASK_DDLN_YMD
+		 	,TASK_MDFCN_YMD
+		 	,TASK_PRGS_PER
+		 	,TKPR_CODE
+		 	,TKST_CODE
+		 	,TASK_REG_YMD
+		 	,TASK_CTR_SN
+		 	,TASK_DEL_YN 
+		 FROM 
+		 	PROJECT_TASK
+		 where
+		 	TASK_NO = #{taskNo}      
+	</select>
+	
+	<select id="selectTaskGantChart" parameterType="int" resultType="projectTaskVO">
+         SELECT 
+		 	TASK_NO
+		 	,EMPL_ID
+		 	,TASK_TTL
+		 	,TASK_CN
+		 	,TASK_BGNG_YMD
+		 	,TASK_DDLN_YMD
+		 	,TASK_MDFCN_YMD
+		 	,TASK_PRGS_PER
+		 	,TKPR_CODE
+		 	,TKST_CODE
+		 	,TASK_REG_YMD
+		 	,TASK_CTR_SN
+		 	,TASK_DEL_YN 
+		 FROM 
+		 	PROJECT_TASK
+		 where
+		 	PROJ_NO = #{projNo}    
+	</select>
+	
+
+	<update id="updateTaskStatus" parameterType="map">
+        UPDATE PROJECT_TASK 
+        SET 
+        TKST_CODE = #{tkstCode}
+        ,TASK_MDFCN_YMD = #{taskMdfcnYmd} 
+        WHERE TASK_NO = #{taskNo}
+    </update>
+    
+    <update id="updateTaskDetail" parameterType="projectTaskVO">
+    	UPDATE PROJECT_TASK 
+        SET 
+        	 TASK_CN = #{taskCn}
+        	,TASK_TTL = #{taskTtl}
+	        ,TASK_BGNG_YMD = #{taskBgngYmd} 
+	        ,TASK_DDLN_YMD = #{taskDdlnYmd} 
+	        ,TASK_MDFCN_YMD = #{taskMdfcnYmd} 
+	        ,TASK_PRGS_PER = #{taskPrgsPer} 
+	        ,TKPR_CODE = #{tkprCode} 
+        WHERE TASK_NO = #{taskNo}
+    </update>
+    
+	
+
+  <select id="selectTasksDay" resultType="map" parameterType="projectTaskVO">
+        <![CDATA[
+        SELECT 
+            dr.task_date as "task_date",
+            NVL(pt.task_count, 0) AS "task_count"
+        FROM 
+        (
+            SELECT TRUNC(SYSDATE) + LEVEL - 1 AS task_date
+            FROM DUAL
+            CONNECT BY LEVEL <= 5
+        ) dr
+        LEFT JOIN (
+            SELECT 
+                TO_DATE(TASK_DDLN_YMD, 'yyyyMMdd') AS task_date,
+                COUNT(TASK_NO) AS task_count
+            FROM 
+                PROJECT_TASK
+            WHERE 
+                TO_DATE(TASK_DDLN_YMD, 'yyyyMMdd') BETWEEN TRUNC(SYSDATE) AND TRUNC(SYSDATE + 5)
+                AND PROJ_NO = #{projNo}
+                AND EMPL_ID = #{emplId}
+            GROUP BY 
+                TO_DATE(TASK_DDLN_YMD, 'yyyyMMdd')
+        ) pt ON dr.task_date = pt.task_date
+        ORDER BY 
+            dr.task_date
+        ]]>
+    </select>
+    
+    
+    <insert id="insertTask" parameterType="projectTaskVO">
+	    <selectKey keyProperty="taskNo" order="BEFORE" resultType="int" >
+	    	select Max(nvl(TASK_NO,0)) +1 as taskNo  from PROJECT_TASK 
+	    </selectKey>
+	    INSERT INTO PROJECT_TASK (
+	        TASK_NO, 
+	        PROJ_NO, 
+	        EMPL_ID, 
+	        TASK_TTL, 
+	        TASK_CN, 
+	        TASK_BGNG_YMD, 
+	        TASK_REG_YMD, 
+	        TASK_DDLN_YMD, 
+	        TASK_PRGS_PER, 
+	        TKPR_CODE, 
+	        TKST_CODE, 
+	        TASK_CTR_SN, 
+	        TASK_DEL_YN
+	    ) VALUES (
+	        #{taskNo},
+	        #{projNo}, 
+	        #{emplId}, 
+	        #{taskTtl}, 
+	        #{taskCn}, 
+	        #{taskBgngYmd}, 
+	        #{taskRegYmd}, 
+	        #{taskDdlnYmd}, 
+	        #{taskPrgsPer}, 
+	        #{tkprCode}, 
+	        'TKST002', 
+	        #{emplId}, 
+	        'N'
+	    )
+  </insert>
+    
+</mapper>

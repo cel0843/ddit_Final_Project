@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.mapper.IAlarmMapper">
+	
+
+	<select id="selectAlarmListByEmplNo" parameterType="string" resultType="alarmVO">
+		select 
+			ALARM_NO, EMPL_ID, ALARM_CONTS, ALARM_CTR_DT, ALARM_TY_CD, ALARM_READ_YN, ALARM_TITLE
+		from ALARM
+		where EMPL_ID = #{emplId}
+		order by ALARM_CTR_DT desc
+	</select>
+	
+	<select id="selectUnreadAlaramCount" parameterType="string" resultType="int">
+		select 
+			count(ALARM_NO)
+		from ALARM
+		where EMPL_ID = #{emplId} and (ALARM_READ_YN = 'N' OR ALARM_READ_YN IS NULL)
+	</select>
+	
+	<update id="updateAlarmReadYN" parameterType="string">
+		update ALARM
+		set ALARM_READ_YN = 'Y'
+		where EMPL_ID = #{emplId}
+	</update>
+	
+	<delete id="clearAllAlarm" parameterType="string">
+		DELETE FROM alarm
+		WHERE
+			empl_id = #{emplId}
+	</delete>
+	
+	<select id="getAlarmNo" resultType="int">
+		select SEQ_ALRAM_NO.NEXTVAL from dual
+	</select>
+	
+	<insert id="insertNewAlarm" parameterType="alarmVO">
+		INSERT INTO ALARM (
+		    ALARM_NO, 
+		    EMPL_ID, 
+		    ALARM_TITLE,
+		    ALARM_CONTS, 
+		    ALARM_CTR_DT, 
+		    ALARM_TY_CD, 
+		    ALARM_READ_YN
+		) VALUES (
+		    SEQ_ALRAM_NO.NEXTVAL,
+		    #{emplId},
+		    #{alarmTitle},
+		    #{alarmConts},
+		    sysdate,
+		    #{alarmTyCd},
+		    'N'
+		)
+	</insert>
+	
+	
+	<!-- 사원 조회 관련 쿼리  -->
+	<select id="selectAlarmUserForChat" parameterType="string" resultType="string">
+		SELECT
+		    EMPL_ID
+		FROM
+		    CHAT_ROOM_JOIN
+		WHERE CHTT_ROOM_NO = #{chatRoomNo}
+	</select>
+	
+	<select id="selectAlarmUserForMail" parameterType="string" resultType="string">
+		SELECT
+		    empl_id
+		FROM
+		    mail_re
+		where EML_NO = #{mailNo}
+	</select>
+	
+	<select id="selectAlarmUserForApproval" parameterType="string" resultType="string">
+		SELECT empl_id FROM approval_document
+		WHERE  APRV_ID = #{approvalId}
+		
+		    UNION
+		    
+		SELECT empl_id FROM rfrnc
+		WHERE  APRV_ID = #{approvalId}
+		
+		    UNION
+		    
+		SELECT empl_id FROM approval_line
+		WHERE APRV_ID = #{approvalId}
+		
+		    UNION
+		    
+		SELECT AGT_ID as empl_id
+		FROM PROXYS
+		WHERE EMPL_ID IN (
+		    SELECT EMPL_ID
+		    FROM approval_line
+		    WHERE APRV_ID = #{approvalId}
+		)
+		AND USE_YN = 'Y'
+		<![CDATA[
+			AND TO_CHAR(SYSDATE, 'YYYYMMDD') >= BGNG_YMD
+			AND (END_YMD IS NULL OR TO_CHAR(SYSDATE, 'YYYYMMDD') <= END_YMD)
+		]]>
+	</select>
+	
+	
+	
+</mapper>

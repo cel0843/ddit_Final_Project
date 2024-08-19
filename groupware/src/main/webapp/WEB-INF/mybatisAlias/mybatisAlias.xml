@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE configuration
+  PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+	<!-- 
+	[마이바티스] 스프링에서 "_"를 사용한 컬럼명을 사용 시(BOOK 테이블의 BOOK_ID)
+	카멜케이스로 읽어줌(bookId), INSERT_DATE => insertDate
+	ex) 테이블 컬러명이 member_id인 경우 jsp화면단에서 이 값을 사용 시 memberId로 사용
+	-->
+	<settings>
+		<setting name="mapUnderscoreToCamelCase" value="true"/>
+	</settings>
+	
+	<!-- 자주 사용하는 타입의 별칭을 세팅 -->
+	<typeAliases>
+		<typeAlias type="kr.or.ddit.vo.EmployeeVO" alias="emplVO"/>
+		<typeAlias type="kr.or.ddit.vo.EmployeeAuthVO" alias="emplAuthVO"/>
+		<typeAlias type="kr.or.ddit.vo.DepartmentVO" alias="deptVO"/>
+		<typeAlias type="kr.or.ddit.vo.CustomEmployeeVO" alias="customEmplVO"/>
+		<typeAlias type="kr.or.ddit.vo.AddressBookVO" alias="adresVO"/>
+		<typeAlias type="kr.or.ddit.vo.ProjectsVO" alias="projectsVO" />
+		<typeAlias type="kr.or.ddit.vo.ProjectTaskVO" alias="projectTaskVO" />
+		<typeAlias type="kr.or.ddit.vo.ProjectPrtcpVO" alias="projectPrtcpVO" />
+		<typeAlias type="kr.or.ddit.vo.ProjectScheduleVO" alias="projectScheduleVO" />
+		<typeAlias type="kr.or.ddit.vo.DataVO" alias="dataVO" />
+		<typeAlias type="kr.or.ddit.vo.AttachFileVO" alias="AttachFileVO" />
+		<typeAlias type="kr.or.ddit.vo.WorkVO" alias="workVO" />
+		
+		<typeAlias type="kr.or.ddit.vo.AprvFormVO" alias="AprvFormVO" />
+		<typeAlias type="kr.or.ddit.vo.AprvDocumentVO" alias="AprvDocumentVO" />
+		<typeAlias type="kr.or.ddit.vo.AprvProxyVO" alias="AprvProxyVO" />
+		<typeAlias type="kr.or.ddit.vo.AprvLineVO" alias="AprvLineVO" />
+		<typeAlias type="kr.or.ddit.vo.AprvProjectVO" alias="AprvProjectVO" />
+		<typeAlias type="kr.or.ddit.vo.AprvDeptVO" alias="AprvDeptVO" />
+		<typeAlias type="kr.or.ddit.vo.AprvVacVO" alias="AprvVacVO" />
+		<typeAlias type="kr.or.ddit.vo.HdHistoryVO" alias="HdHistoryVO" />
+		<typeAlias type="kr.or.ddit.vo.EmployeeHolidayVO" alias="EmployeeHolidayVO" />
+		<typeAlias type="kr.or.ddit.vo.AprvSearchVO" alias="AprvSearchVO" />
+		<typeAlias type="kr.or.ddit.vo.AprvLineTempVO" alias="AprvLineTempVO" />
+		
+		<typeAlias type="kr.or.ddit.vo.MailSendVO" alias="mscVO" />
+		<typeAlias type="kr.or.ddit.vo.MailReVO" alias="mreVO" />
+		<typeAlias type="kr.or.ddit.vo.CustomChatMsgVO" alias="customChatMsgVO" />
+		<typeAlias type="kr.or.ddit.vo.TodoVO" alias="todoVO" />
+		<typeAlias type="kr.or.ddit.vo.TodoContentVO" alias="todoContentVO" />
+		<typeAlias type="kr.or.ddit.vo.CustomFileVO" alias="customFileVO" />
+		<typeAlias type="kr.or.ddit.vo.ChatRoomVO" alias="chatRoomVO" />
+		<typeAlias type="kr.or.ddit.vo.BoardVO" alias="boardVO" />
+		<typeAlias type="kr.or.ddit.vo.CommentVO" alias="commentVO" />
+		<typeAlias type="kr.or.ddit.vo.BoardPaginationInfoVO" alias="boardPagingVO" />
+		<typeAlias type="kr.or.ddit.vo.CustomBoardVO" alias="customBoardVO" />
+		<typeAlias type="kr.or.ddit.vo.AlarmVO" alias="alarmVO" />
+		<typeAlias type="kr.or.ddit.vo.SurveyVO" alias="surveyVO" />
+		<typeAlias type="kr.or.ddit.vo.SurveyQuestionVO" alias="surveyQuestionVO" />
+		<typeAlias type="kr.or.ddit.vo.SurveyQItemVO" alias="surveyQItemVO" />
+		<typeAlias type="kr.or.ddit.vo.SurveyParticpantVO" alias="surveyParticpantVO" />
+		<typeAlias type="kr.or.ddit.vo.SurveyRspnsCnVO" alias="surveyRspnsCnVO" />
+		<typeAlias type="kr.or.ddit.vo.FingerprintVO" alias="fingerprintVO" />
+		<typeAlias type="kr.or.ddit.vo.GridStackVO" alias="gridStackVO" />
+		
+		<typeAlias type="kr.or.ddit.vo.FixuresVO" alias="fixuresVO" />
+		<typeAlias type="kr.or.ddit.vo.FixuresRsvtVO" alias="fixuresRsvtVO" />
+		<typeAlias type="kr.or.ddit.vo.MettingRoomVO" alias="mettingRoomVO" />
+		<typeAlias type="kr.or.ddit.vo.MettingRoomRsvtVO" alias="mettingRoomRsvtVO" />
+		<typeAlias type="kr.or.ddit.vo.CompanyScheduleVO" alias="csVO" />
+	</typeAliases>
+</configuration>
+
+

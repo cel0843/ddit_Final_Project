@@ -1,0 +1,292 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.mapper.IReservationMapper">
+
+	<resultMap type="mettingRoomVO" id="mettingRoomMap">
+		<result property="roomNo" column="ROOM_NO"/>
+		<result property="roomNm" column="ROOM_NM"/>
+		<result property="roomPstn" column="ROOM_PSTN"/>
+		<result property="roomEqpmnt" column="ROOM_EQPMNT"/>
+		<result property="roomNope" column="ROOM_NOPE"/>
+		<collection property="mettingRoomRsvtVOList" resultMap="mettingRoomRsvtMap"></collection>
+	</resultMap>
+	
+	<resultMap type="mettingRoomRsvtVO" id="mettingRoomRsvtMap">
+		<result property="rsvtNo" column="RSVT_NO"/>
+		<result property="roomNo" column="ROOM_NO"/>
+		<result property="emplId" column="EMPL_ID"/>
+		<result property="rsvtBgngDt" column="RSVT_BGNG_DT"/>
+		<result property="rsvtEndDt" column="RSVT_END_DT"/>
+	</resultMap>
+
+	<!-- 회의실 목록 -->
+	<select id="mettingRoomRes" resultMap="mettingRoomMap">
+		SELECT A.ROOM_NO
+		     , A.ROOM_NM
+		     , A.ROOM_PSTN
+		     , A.ROOM_EQPMNT
+		     , A.ROOM_NOPE		     
+		FROM   METTING_ROOM A
+		ORDER BY A.ROOM_NO  
+	</select> 
+	
+		<resultMap type="mettingRoomRsvtVO" id="mettingRoomRsvtMap2">
+		<result property="rsvtNo" column="RSVT_NO"/>
+		<result property="roomNo" column="ROOM_NO"/>
+		<result property="emplId" column="EMPL_ID"/>
+		<result property="rsvtBgngDt" column="RSVT_BGNG_DT"/>
+		<result property="rsvtEndDt" column="RSVT_END_DT"/>
+		<association property="mettingRoomVO" resultMap="mettingRoomMap2"></association>
+	</resultMap>	
+	<!-- 1 : 1 -->
+	<resultMap type="mettingRoomVO" id="mettingRoomMap2">
+		<result property="roomNo" column="ROOM_NO"/>
+		<result property="roomNm" column="ROOM_NM"/>
+		<result property="roomPstn" column="ROOM_PSTN"/>
+		<result property="roomEqpmnt" column="ROOM_EQPMNT"/>
+		<result property="roomNope" column="ROOM_NOPE"/>
+	</resultMap>
+	
+	<!-- 회의실 예약 목록  -->
+	<select id="mettingRoomResList" resultMap="mettingRoomRsvtMap2">
+		SELECT A.RSVT_NO
+			 , A.ROOM_NO
+		     , (SELECT C.EMPL_NM FROM EMPLOYEE C WHERE C.EMPL_ID = A.EMPL_ID) || '(' || A.EMPL_ID || ')' EMPL_ID
+		     , A.RSVT_BGNG_DT
+		     , A.RSVT_END_DT   
+		     , B.ROOM_NM
+		     , B.ROOM_PSTN
+		     , B.ROOM_EQPMNT
+		     , B.ROOM_NOPE
+		FROM   METTING_ROOM_RSVT A, METTING_ROOM B
+		WHERE  A.ROOM_NO = B.ROOM_NO
+	</select>
+	
+	<!-- 회의실 상세, 회의실 예약 상세
+	int roomNo = 3;
+	-->
+	<select id="mettingRoomResDet" parameterType="int" resultMap="mettingRoomMap">
+		SELECT A.ROOM_NO
+		     , A.ROOM_NM
+		     , A.ROOM_PSTN
+		     , A.ROOM_EQPMNT
+		     , A.ROOM_NOPE
+		     , B.RSVT_NO
+		     , (SELECT C.EMPL_NM 
+                FROM EMPLOYEE C 
+                WHERE C.EMPL_ID = B.EMPL_ID) || '(' || B.EMPL_ID || ')' EMPL_ID
+		     , TO_CHAR(B.RSVT_BGNG_DT,'YYYY-MM-DD HH24:MI') RSVT_BGNG_DT
+		     , TO_CHAR(B.RSVT_END_DT,'YYYY-MM-DD HH24:MI') RSVT_END_DT
+		FROM   METTING_ROOM A, METTING_ROOM_RSVT B
+		WHERE  A.ROOM_NO = B.ROOM_NO
+        AND    B.RSVT_NO = #{rsvtNo}
+	</select>
+	
+	
+	
+	<!--  예약내역 비교 -->
+	<select id="mettingSelectDet" parameterType="mettingRoomRsvtVO" resultType="int">
+		SELECT COUNT(*)
+		FROM METTING_ROOM_RSVT 
+		WHERE room_no = #{roomNo}
+		<![CDATA[
+ 		AND #{dateRsvstBgngDt} < to_char(rsvt_end_dt, 'YYYY-MM-DD hh24:mm')
+ 		AND #{dateRsveEndDt} > to_char(rsvt_bgng_dt, 'YYYY-MM-DD hh24:mm') 
+		]]>
+	</select>
+	
+
+	<!--  회의실 예약 등록  -->
+	<insert id="mettinginsertRes" parameterType="mettingRoomRsvtVO" useGeneratedKeys="true">
+		<selectKey keyProperty="rsvtNo" order="BEFORE" resultType="int">
+			select SEQ_RSVT_NO.NEXTVAL from dual 
+		</selectKey>
+		INSERT INTO METTING_ROOM_RSVT 
+		(rsvt_no, room_no, empl_id, rsvt_bgng_dt, rsvt_end_dt) 
+		VALUES (#{rsvtNo}, #{roomNo}, #{emplId}, 
+		TO_DATE(#{rsvtBgngDt}, 'YYYY-MM-DD"T"HH24:MI'), 
+		TO_DATE(#{rsvtEndDt}, 'YYYY-MM-DD"T"HH24:MI'))
+	</insert>
+
+
+	<!-- 회의실 예약 수정 -->
+	<update id="mettingUpdateRes" parameterType="mettingRoomRsvtVO">
+
+		UPDATE
+			METTING_ROOM_RSVT
+		SET 
+			RSVT_BGNG_DT = TO_DATE(#{rsvtBgngDt}, 'YYYY-MM-DD HH24:MI'),
+			RSVT_END_DT = TO_DATE(#{rsvtEndDt}, 'YYYY-MM-DD HH24:MI')
+		WHERE
+			RSVT_NO = #{rsvtNo}
+	</update>
+	
+
+	
+	
+	
+	<!-- 예약 삭제 -->
+	<delete id="deleteReservation" parameterType="int">
+		delete 
+		from METTING_ROOM_RSVT
+		WHERE RSVT_NO = #{rsvtNo}
+	</delete>
+	
+	
+	
+	
+	
+	
+	
+	
+	
+ 	<resultMap type="fixuresVO" id="fixuresMap">
+ 		<id property="fixNo" column="FIX_NO"/>
+		<result property="fixNo" column="FIX_NO"/>
+		<result property="fixNm" column="FIX_NM"/>
+		<result property="fixTyCd" column="FIX_TY_CD"/>
+		<result property="fixImg" column="FIX_IMG"/>
+		<collection property="fixuresRsvtVOList" resultMap="fixuresRsvtMap"></collection>
+	</resultMap>
+	
+	<resultMap type="fixuresRsvtVO" id="fixuresRsvtMap">
+		<result property="fixRsvtNo" column="FIX_RSVT_NO"/>
+		<result property="emplId" column="EMPL_ID"/>
+		<result property="fixNo" column="FIX_NO"/>
+		<result property="fixRsvtBgngDt" column="FIX_RSVT_BGNG_DT"/>
+		<result property="fixRsvtEndDt" column="FIX_RSVT_END_DT"/>
+	</resultMap>
+
+	<!--비품 목록-->
+	<select id="fixuresRes" resultMap="fixuresMap">
+		SELECT FIX_NO
+		     , FIX_NM
+		     , FIX_TY_CD
+		     , FIX_IMG		     
+		FROM   FIXURES 
+		ORDER BY FIX_NO
+	</select>	 
+	
+	
+		<resultMap type="fixuresRsvtVO" id="fixuresRsvtMap2">
+		<result property="fixRsvtNo" column="FIX_RSVT_NO"/>
+		<result property="fixNo" column="FIX_NO"/>
+		<result property="emplId" column="EMPL_ID"/>
+		<result property="fixRsvtBgngDt" column="FIX_RSVT_BGNG_DT"/>
+		<result property="fixRsvtEndDt" column="FIX_RSVT_END_DT"/>
+		<association property="fixuresVO" resultMap="fixuresMap2"></association>
+	</resultMap>	
+	<!-- 1 : 1 -->
+	<resultMap type="fixuresVO" id="fixuresMap2">
+		<result property="fixNo" column="FIX_NO"/>
+		<result property="fixNm" column="FIX_NM"/>
+		<result property="fixTyCd" column="FIX_TY_CD"/>
+		<result property="fixImg" column="FIX_IMG"/>
+	</resultMap>
+	
+  	<!-- 비품 예약 목록 -->
+	<select id="fixuresResList" resultMap="fixuresRsvtMap2">
+		SELECT A.FIX_RSVT_NO
+			 , A.FIX_NO
+		     , (SELECT C.EMPL_NM FROM EMPLOYEE C WHERE C.EMPL_ID = A.EMPL_ID) || '(' || A.EMPL_ID || ')' EMPL_ID
+		     , A.FIX_RSVT_BGNG_DT
+		     , A.FIX_RSVT_END_DT   
+		     , B.FIX_NM
+		     , B.FIX_TY_CD
+		     , B.FIX_IMG
+		FROM   FIXURES_RSVT A, FIXURES B
+		WHERE  A.FIX_NO = B.FIX_NO 
+	</select>
+	
+	
+	<!-- 비품 상세, 비품 예약 상세
+	-->
+	<select id="fixuresResDet" parameterType="int" resultMap="fixuresMap">
+		SELECT A.FIX_NO
+		     , A.FIX_NM
+		     , A.FIX_IMG
+		     , B.FIX_RSVT_NO
+		     , (SELECT C.EMPL_NM 
+                FROM EMPLOYEE C 
+                WHERE C.EMPL_ID = B.EMPL_ID) || '(' || B.EMPL_ID || ')' EMPL_ID
+		     , TO_CHAR(B.FIX_RSVT_BGNG_DT,'YYYY-MM-DD HH24:MI') FIX_RSVT_BGNG_DT
+		     , TO_CHAR(B.FIX_RSVT_END_DT,'YYYY-MM-DD HH24:MI') FIX_RSVT_END_DT
+		FROM   FIXURES A, FIXURES_RSVT B
+		WHERE  A.FIX_NO = B.FIX_NO
+       		AND    B.FIX_RSVT_NO = #{fixRsvtNo}
+	</select>
+	
+	
+		<!-- 비품 예약내역 비교 
+	시작이 종료보다 작고
+	종료가 시작보다 크다
+	-->
+	<select id="fixSelectDet" parameterType="fixuresRsvtVO" resultType="int">
+		SELECT COUNT(*)
+		FROM FIXURES_RSVT 
+		WHERE FIX_NO = #{fixNo}
+		<![CDATA[
+ 		AND #{dateFixRsvtBgngDt} < to_char(FIX_RSVT_END_DT, 'YYYY-MM-DD hh24:mm')
+ 		AND #{dateFixRsvtEndDt} > to_char(FIX_RSVT_BGNG_DT, 'YYYY-MM-DD hh24:mm') 
+		]]>
+	</select>
+	
+          <!--  비품 예약 등록
+          {"fixNo": "1","emplId": "20240624"
+				,"fixRsvtBgngDt": "2024-07-29T21:13","fixRsvtEndDt": "2024-07-29T21:19",fixRsvtNo:0}
+            -->
+	<insert id="fixuresInsertRes" parameterType="fixuresRsvtVO">
+		<selectKey keyProperty="fixRsvtNo" order="BEFORE" resultType="int">			
+        	select SEQ_FIX_RSVT_NO.NEXTVAL from dual 
+		</selectKey>
+        
+		INSERT INTO FIXURES_RSVT 
+		(fix_rsvt_no, empl_id, fix_no, fix_rsvt_bgng_dt, fix_rsvt_end_dt) 
+		VALUES (#{fixRsvtNo}, #{emplId}, #{fixNo}, 
+		TO_DATE(#{fixRsvtBgngDt}, 'YYYY-MM-DD"T"HH24:MI'), 
+		TO_DATE(#{fixRsvtEndDt}, 'YYYY-MM-DD"T"HH24:MI'))
+		
+<!-- 		INSERT INTO FIXURES_RSVT  -->
+<!-- 		(fix_rsvt_no, empl_id, fix_no, fix_rsvt_bgng_dt, fix_rsvt_end_dt)  -->
+<!-- 		VALUES (#{fixRsvtNo}, #{emplId}, #{fixNo},  -->
+<!-- 		TO_DATE(#{fixRsvtBgngDt}, 'YYYY/MM/DD HH24:MI'),  -->
+<!-- 		TO_DATE(#{fixRsvtEndDt}, 'YYYY/MM/DD HH24:MI')) -->
+	</insert>
+	
+		<!-- 비품 예약 수정 -->
+	<update id="fixuresUpdateRes" parameterType="fixuresRsvtVO">
+
+		UPDATE
+			FIXURES_RSVT
+		SET 
+			FIX_RSVT_BGNG_DT = TO_DATE(#{fixRsvtBgngDt}, 'YYYY-MM-DD HH24:MI'),
+			FIX_RSVT_END_DT = TO_DATE(#{fixRsvtEndDt}, 'YYYY-MM-DD HH24:MI')
+		WHERE
+			FIX_RSVT_NO = #{fixRsvtNo}
+	</update>
+	
+	
+		<!-- 예약 삭제 -->
+	<delete id="fixdeleteReservation" parameterType="int">
+		delete 
+		from FIXURES_RSVT
+		WHERE FIX_RSVT_NO = #{fixRsvtNo}
+	</delete>
+	
+
+
+
+
+	
+</mapper>
+
+
+
+
+
+
+
+
+
+
+
